@@ -1,7 +1,8 @@
 # InfraLens Current Tasks
 
 ## Now
-- [ ] Create GitHub repository and copy the onboarding pack into root.
+- [x] Scaffold Python package (`src/infralens`, tests, data dirs, feasibility-sprint deps).
+- [x] Create GitHub repository and copy the onboarding pack into root.
 - [ ] Obtain/configure EIA API key.
 - [ ] Pull monthly commercial electricity price/sales history for PJM states.
 - [ ] Inventory archived/current PJM load-forecast files and document publication dates.

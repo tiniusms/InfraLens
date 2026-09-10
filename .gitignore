@@ -20,10 +20,13 @@ htmlcov/
 dist/
 build/
 
-# Data artifacts (raw downloads and derived tables stay local unless explicitly committed)
-data/raw/
-data/interim/
-data/processed/
+# Data artifacts (keep directory placeholders; raw/interim/processed payloads stay local)
+data/raw/*
+!data/raw/.gitkeep
+data/interim/*
+!data/interim/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
 *.parquet
 *.duckdb
 *.duckdb.wal

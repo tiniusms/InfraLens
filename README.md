@@ -6,7 +6,7 @@ InfraLens is a **screening and decision-support tool** for corporate-development
 
 ## Status
 
-Onboarding and repository setup. Data ingestion, baselines, and the Streamlit demo are not implemented yet.
+Python package scaffold for the public-data feasibility sprint. Data ingestion, baselines, and the Streamlit demo are not implemented yet.
 
 Primary geography: PJM state footprint (user-facing comparison initially VA, PA, OH, MD, NJ).  
 Due: 25 October 2026. Fallback project: RateLens (FDIC/FRED NIM forecasting) if public-data feasibility fails.
@@ -23,14 +23,19 @@ Due: 25 October 2026. Fallback project: RateLens (FDIC/FRED NIM forecasting) if 
 
 GitHub is authoritative. Chat histories are not.
 
-## How to run
+## Setup
 
-Application code is not in the repository yet. After the data and Streamlit MVP land, this section will cover:
+Python 3.11+ is required.
 
-1. Copy `.env.example` to `.env` and add an [EIA API key](https://www.eia.gov/opendata/register.php).
-2. Create a Python 3.11+ environment and install dependencies.
-3. Ingest public EIA/PJM data.
-4. Launch the Streamlit app.
+```bash
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+cp .env.example .env        # then add an EIA API key: https://www.eia.gov/opendata/register.php
+pytest
+```
+
+HTTP client for this sprint is `httpx` (not `requests`). Later stack pieces (XGBoost, SHAP, MLflow, Streamlit, Docker) are intentionally not installed yet.
 
 ## Intended stack
 
