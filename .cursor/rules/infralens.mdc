@@ -1,0 +1,11 @@
+---
+description: InfraLens project rules
+globs: ["**/*.py", "**/*.md", "**/*.toml", "**/*.yml", "**/*.yaml"]
+alwaysApply: true
+---
+Read `PROJECT_CONTEXT.md`, `AGENTS.md`, `DECISIONS.md`, and `TASKS.md` before major work.
+Preserve point-in-time validity; never introduce future-data leakage.
+Keep financial outputs deterministic and covered by tests.
+Compare ML models to seasonal-naive and regularized-linear baselines.
+Do not change target, geography, success criteria, or final holdout without recording the decision.
+Prefer small reproducible modules over notebook-only implementation.

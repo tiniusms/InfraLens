@@ -1,0 +1,45 @@
+# Secrets and local env
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.venv/
+venv/
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Data artifacts (raw downloads and derived tables stay local unless explicitly committed)
+data/raw/
+data/interim/
+data/processed/
+*.parquet
+*.duckdb
+*.duckdb.wal
+
+# Experiment tracking
+mlruns/
+mlflow.db
+.mlflow/
+
+# Models and notebooks checkpoints
+models/*.pkl
+models/*.joblib
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
