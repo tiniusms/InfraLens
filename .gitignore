@@ -23,6 +23,9 @@ build/
 # Data artifacts (keep directory placeholders; raw/interim/processed payloads stay local)
 data/raw/*
 !data/raw/.gitkeep
+!data/raw/eia/
+data/raw/eia/*
+!data/raw/eia/.gitkeep
 data/interim/*
 !data/interim/.gitkeep
 data/processed/*

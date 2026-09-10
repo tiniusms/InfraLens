@@ -6,7 +6,7 @@ InfraLens is a **screening and decision-support tool** for corporate-development
 
 ## Status
 
-Python package scaffold for the public-data feasibility sprint. Data ingestion, baselines, and the Streamlit demo are not implemented yet.
+Python package plus EIA monthly commercial retail-sales ingest for VA, PA, OH, MD, and NJ. Baselines and the Streamlit demo are not implemented yet.
 
 Primary geography: PJM state footprint (user-facing comparison initially VA, PA, OH, MD, NJ).  
 Due: 25 October 2026. Fallback project: RateLens (FDIC/FRED NIM forecasting) if public-data feasibility fails.
@@ -33,9 +33,12 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 cp .env.example .env        # then add an EIA API key: https://www.eia.gov/opendata/register.php
 pytest
+python -m infralens.data.eia_ingest
 ```
 
 HTTP client for this sprint is `httpx` (not `requests`). Later stack pieces (XGBoost, SHAP, MLflow, Streamlit, Docker) are intentionally not installed yet.
+
+Raw EIA JSON is written under `data/raw/eia/` and is gitignored. API keys are never logged; echoed `api_key` fields are redacted before the raw file is saved.
 
 ## Intended stack
 
