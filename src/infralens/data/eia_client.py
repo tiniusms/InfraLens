@@ -89,6 +89,28 @@ def _query_params(
     return params
 
 
+def _response_total(page: dict[str, Any]) -> int:
+    body = page.get("response")
+    if not isinstance(body, dict) or "total" not in body:
+        raise EiaApiError("EIA retail-sales response.total is missing.")
+    try:
+        return int(body["total"])
+    except (TypeError, ValueError) as exc:
+        raise EiaApiError("EIA retail-sales response.total is invalid.") from exc
+
+
+def _response_rows(page: dict[str, Any]) -> list[Any]:
+    body = page.get("response") or {}
+    rows = body.get("data") or []
+    if not isinstance(rows, list):
+        raise EiaApiError("EIA retail-sales response.data must be a list.")
+    return rows
+
+
+def _collected_row_count(pages: list[dict[str, Any]]) -> int:
+    return sum(len(_response_rows(page)) for page in pages)
+
+
 def fetch_retail_sales_pages(
     *,
     api_key: str | None = None,
@@ -101,12 +123,16 @@ def fetch_retail_sales_pages(
 
     Returns the JSON objects as received, except callers must redact before
     persisting. Does not print request URLs (they contain the API key).
+    Raises ``EiaApiError`` if an empty/truncated page appears before
+    ``response.total`` rows are collected, or if the collected count does not
+    equal ``response.total``.
     """
     key = api_key if api_key is not None else load_eia_api_key()
     owns_client = client is None
     http_client = client or httpx.Client(timeout=timeout_seconds)
     pages: list[dict[str, Any]] = []
     offset = 0
+    expected_total: int | None = None
     try:
         while True:
             try:
@@ -132,21 +158,37 @@ def fetch_retail_sales_pages(
                 raise EiaApiError("EIA retail-sales response was not valid JSON.") from exc
             if page.get("error"):
                 raise EiaApiError("EIA retail-sales API returned an error.")
+            total = _response_total(page)
+            if expected_total is None:
+                expected_total = total
+            elif total != expected_total:
+                raise EiaApiError(
+                    "EIA retail-sales response.total changed between pages "
+                    f"({expected_total} vs {total})."
+                )
+            rows = _response_rows(page)
+            if not rows:
+                if offset < expected_total:
+                    raise EiaApiError(
+                        "EIA retail-sales returned an empty page at offset "
+                        f"{offset} before collecting {expected_total} rows."
+                    )
+                break
             pages.append(page)
-            body = page.get("response") or {}
-            rows = body.get("data") or []
-            try:
-                total = int(body.get("total", len(rows)))
-            except (TypeError, ValueError):
-                total = offset + len(rows)
             offset += len(rows)
-            if not rows or offset >= total:
+            if offset >= expected_total:
                 break
     finally:
         if owns_client:
             http_client.close()
-    if not pages:
+    collected = _collected_row_count(pages)
+    if expected_total is None:
         raise EiaApiError("EIA retail-sales returned no pages.")
+    if collected != expected_total:
+        raise EiaApiError(
+            "EIA retail-sales incomplete: collected "
+            f"{collected} rows, response.total is {expected_total}."
+        )
     return pages
 
 
