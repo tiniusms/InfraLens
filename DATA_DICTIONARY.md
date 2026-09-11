@@ -6,8 +6,10 @@ First feasibility extract only. No feature engineering or modeling. Values below
 **Geography:** Maryland, New Jersey, Ohio, Pennsylvania, Virginia  
 **Source system:** U.S. Energy Information Administration (EIA) API v2 route `/v2/electricity/retail-sales/data/`  
 **Underlying surveys (EIA metadata):** Forms EIA-826, EIA-861, and EIA-861M  
-**Raw artifact:** `data/raw/eia/retail_sales_monthly_com_20260910T035906Z.json` (immutable; API key redacted)  
-**Interim artifact:** `data/interim/eia_retail_sales_monthly_com.parquet`  
+**Raw artifact:** `data/raw/eia/retail_sales_monthly_com_<UTC-stamp>.json` (immutable; API key redacted)  
+**Interim artifact:** `data/interim/eia_retail_sales_monthly_com_<UTC-stamp>.parquet`  
+One ingest run writes one JSON and one Parquet that share the same stamp. There is no mutable “latest” Parquet file.  
+Example extract used for the quality notes below: retrieved `2026-09-10T03:59:06Z`.  
 **Grain:** one row per `state_id` × `period` × `sector_id`  
 **Observed coverage:** 1,530 rows; 2001-01 through 2026-06; 306 months; 306 rows per state; complete monthly panel (no missing months)
 

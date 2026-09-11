@@ -38,7 +38,7 @@ python -m infralens.data.eia_ingest
 
 HTTP client for this sprint is `httpx` (not `requests`). Later stack pieces (XGBoost, SHAP, MLflow, Streamlit, Docker) are intentionally not installed yet.
 
-Raw EIA JSON is written under `data/raw/eia/` and is gitignored. API keys are never logged; echoed `api_key` fields are redacted before the raw file is saved.
+Raw EIA JSON is written under `data/raw/eia/` and the matching interim Parquet under `data/interim/`. Both filenames share the same UTC retrieval timestamp. There is no mutable “latest” Parquet alias. API keys are never logged; echoed `api_key` fields are redacted before the raw file is saved.
 
 ## Intended stack
 

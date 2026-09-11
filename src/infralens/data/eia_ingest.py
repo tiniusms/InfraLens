@@ -29,12 +29,14 @@ def run_eia_retail_sales_ingest(
     states: tuple[str, ...] = USER_FACING_STATES,
     start: str = EIA_START_PERIOD,
 ) -> IngestResult:
-    """Fetch EIA retail sales, write immutable raw JSON, write interim Parquet."""
+    """Fetch EIA retail sales and write timestamp-matched raw JSON and Parquet."""
     root = project_root or repository_root()
     retrieved_at = datetime.now(timezone.utc)
     stamp = retrieved_at.strftime("%Y%m%dT%H%M%SZ")
     raw_path = root / "data" / "raw" / "eia" / f"retail_sales_monthly_com_{stamp}.json"
-    parquet_path = root / "data" / "interim" / "eia_retail_sales_monthly_com.parquet"
+    parquet_path = (
+        root / "data" / "interim" / f"eia_retail_sales_monthly_com_{stamp}.parquet"
+    )
 
     pages = fetch_retail_sales_pages(states=states, start=start)
     write_raw_eia_artifact(
@@ -50,6 +52,8 @@ def run_eia_retail_sales_ingest(
         expected_states=states,
         require_all_expected_states=True,
     )
+    if parquet_path.exists():
+        raise FileExistsError(f"Interim EIA artifact already exists: {parquet_path}")
     parquet_path.parent.mkdir(parents=True, exist_ok=True)
     frame.to_parquet(parquet_path, index=False)
     return IngestResult(raw_path=raw_path, parquet_path=parquet_path, validation=report)

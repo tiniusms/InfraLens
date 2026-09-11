@@ -83,6 +83,21 @@ def test_fetch_fails_on_empty_page_before_total() -> None:
         )
 
 
+def test_fetch_fails_when_total_changes_between_pages() -> None:
+    client = _client_for_pages(
+        {
+            0: _page(4, [_row("2001-01", "VA"), _row("2001-01", "PA")]),
+            2: _page(5, [_row("2001-02", "VA"), _row("2001-02", "PA")]),
+        }
+    )
+    with pytest.raises(EiaApiError, match="response.total changed"):
+        fetch_retail_sales_pages(
+            api_key=_TEST_KEY,
+            states=("VA", "PA"),
+            client=client,
+        )
+
+
 def test_fetch_fails_when_collected_rows_do_not_match_total() -> None:
     client = _client_for_pages(
         {
