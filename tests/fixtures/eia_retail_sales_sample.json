@@ -1,0 +1,57 @@
+{
+  "response": {
+    "total": "3",
+    "dateFormat": "YYYY-MM",
+    "frequency": "monthly",
+    "data": [
+      {
+        "period": "2001-01",
+        "stateid": "VA",
+        "stateDescription": "Virginia",
+        "sectorid": "COM",
+        "sectorName": "commercial",
+        "price": "6.50",
+        "revenue": "100.1",
+        "sales": "1540.0",
+        "price-units": "cents per kilowatt-hour",
+        "revenue-units": "million dollars",
+        "sales-units": "million kilowatt hours"
+      },
+      {
+        "period": "2001-01",
+        "stateid": "PA",
+        "stateDescription": "Pennsylvania",
+        "sectorid": "COM",
+        "sectorName": "commercial",
+        "price": "7.10",
+        "revenue": "200.2",
+        "sales": "2820.5",
+        "price-units": "cents per kilowatt-hour",
+        "revenue-units": "million dollars",
+        "sales-units": "million kilowatt hours"
+      },
+      {
+        "period": "2001-02",
+        "stateid": "VA",
+        "stateDescription": "Virginia",
+        "sectorid": "COM",
+        "sectorName": "commercial",
+        "price": ".",
+        "revenue": "98.0",
+        "sales": "1400.0",
+        "price-units": "cents per kilowatt-hour",
+        "revenue-units": "million dollars",
+        "sales-units": "million kilowatt hours"
+      }
+    ]
+  },
+  "request": {
+    "command": "/v2/electricity/retail-sales/data/",
+    "params": {
+      "api_key": "SECRET_SHOULD_NOT_APPEAR",
+      "frequency": "monthly",
+      "data": ["price", "sales", "revenue"]
+    }
+  },
+  "apiVersion": "2.1.13"
+}

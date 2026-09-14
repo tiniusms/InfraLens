@@ -3,10 +3,10 @@
 ## Now
 - [x] Scaffold Python package (`src/infralens`, tests, data dirs, feasibility-sprint deps).
 - [x] Create GitHub repository and copy the onboarding pack into root.
-- [ ] Obtain/configure EIA API key.
-- [ ] Pull monthly commercial electricity price/sales history for PJM states.
+- [x] Obtain/configure EIA API key.
+- [x] Pull monthly commercial electricity price/sales history for PJM states.
 - [ ] Inventory archived/current PJM load-forecast files and document publication dates.
-- [ ] Build first data dictionary with source, unit, frequency, availability date, and leakage risk.
+- [x] Build first data dictionary with source, unit, frequency, availability date, and leakage risk.
 - [ ] Create seasonal-naive t-12 baseline.
 - [ ] Run first temporal backtest.
 
