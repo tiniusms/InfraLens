@@ -13,7 +13,7 @@ Example extract used for the quality notes below: retrieved `2026-09-10T03:59:06
 **Grain:** one row per `state_id` × `period` × `sector_id`  
 **Observed coverage:** 1,530 rows; 2001-01 through 2026-06; 306 months; 306 rows per state; complete monthly panel (no missing months)
 
-Publication / availability timing for point-in-time reconstruction is **TBD**. This extract records when InfraLens retrieved the series, not when EIA first published or last revised each month. Electric Power Monthly currently releases on a lag of about two months (example: June 2026 tables released 2026-08-26), but that is not a verified vintage calendar for historical API values. Do not treat `period` as an availability date.
+Publication / availability timing for true EIA vintages remains unobserved in the API. InfraLens uses a **conservative evaluation assumption**: `assumed_available_at` is the first day of month *m+3* for observation month *m*. That date is not an EIA release timestamp. Historical API values are **current-vintage** and may include later revisions.
 
 ## Units verification (not from column names alone)
 
@@ -35,8 +35,8 @@ A conflicting EIA API documentation example sometimes lists price in dollars per
 
 | Name | Source | Definition | Unit | Frequency | Role | Observation period | Publication / availability | Leakage risk |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `period` | EIA `period` | Calendar month of the retail-sales observation (`YYYY-MM`). | Month | Monthly | Time key | 2001-01 to 2026-06 | TBD | Using `period` as if it were available on the first of that month would leak; EIA publishes later. |
-| `period_start` | Derived from `period` | First day of `period`. Not an EIA publication date. | Date | Monthly | Time key convenience | Same as `period` | TBD | Same as `period`. |
+| `period` | EIA `period` | Calendar month of the retail-sales observation (`YYYY-MM`). | Month | Monthly | Time key | 2001-01 to 2026-06 | Not an availability date | Using `period` as if it were available on the first of that month would leak. |
+| `period_start` | Derived from `period` | First day of `period`. Not an EIA publication date. | Date | Monthly | Time key convenience | Same as `period` | Not an availability date | Same as `period`. |
 | `state_id` | EIA `stateid` | USPS state code. Feasibility slice: MD, NJ, OH, PA, VA. | Code | Monthly | Entity key; geography | All rows | n/a | None if used only as a known location identifier. |
 | `state_name` | EIA `stateDescription` | State name. | Text | Monthly | Label | All rows | n/a | None. |
 | `sector_id` | EIA `sectorid` | End-use sector. This extract is `COM` only. | Code | Monthly | Entity key; filter | All rows | n/a | Do not mix other sectors without a dated decision. |
@@ -49,6 +49,7 @@ A conflicting EIA API documentation example sometimes lists price in dollars per
 | `revenue_units` | EIA `revenue-units` | Unit string supplied by the API. | Text | Monthly | Metadata | All rows | n/a | None. |
 | `frequency` | EIA request / `frequency` | `monthly`. | Text | Constant | Metadata | All rows | n/a | None. |
 | `retrieved_at` | InfraLens extract | UTC timestamp when this API payload was retrieved. | Timestamp | Extract-level | Lineage | 2026-09-10T03:59:06Z | Known (extract time only) | Does not make historical months point-in-time valid. |
+| `assumed_available_at` | InfraLens evaluation assumption | First day of month *m+3* for `period` *m*. Conservative stand-in for EPM lag; **not** an EIA first-publication or revision timestamp. | Date | Monthly | Leakage control | Derived for every row | Assumed (m+3-01) | If ignored, future-of-origin information can leak into the baseline. |
 | `source` | InfraLens | `U.S. Energy Information Administration`. | Text | Constant | Lineage | All rows | n/a | None. |
 | `source_route` | InfraLens | `/v2/electricity/retail-sales/data/`. | Text | Constant | Lineage | All rows | n/a | None. |
 | `source_url` | InfraLens | HTTPS endpoint used for retrieval (no key). | URL | Constant | Lineage | All rows | n/a | None. |
