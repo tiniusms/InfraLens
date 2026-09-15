@@ -2,6 +2,13 @@
 
 Use one entry for every material change in scope, data, model, evaluation, architecture, or financial assumptions.
 
+## 2026-09-14 - Publication-lag-constrained current-vintage evaluation
+**Decision:** For EIA month *m*, set `assumed_available_at` to the first day of month *m+3*. Forecast origin is the analyst decision date. The primary target is commercial price in the calendar month 12 months after that origin. Every input at an origin must satisfy `assumed_available_at <= forecast_origin`. The baseline is availability-adjusted seasonal-naive: the most recent same-calendar-month observation that was available at the origin—not an unavailable t-12. This backtest is a **publication-lag-constrained current-vintage** evaluation: API history may already include later revisions and is not a real-time vintage replay.
+**Evidence:** EIA API rows have no publication/revision timestamp. EPM Table 5.6.A currently lags the data month by about two months (e.g. June 2026 released 2026-08-26). Form EIA-861M/826 data are due at the end of the following month. A three-month lag to the *first day of m+3* is conservative relative to that schedule.
+**Alternatives considered:** Use `period` as availability (rejected: leakage). Use a two-month lag (less conservative). Wait for a full historical vintage calendar before any baseline (blocks the capstone). Pure t-12 on observation time (would use June 2024 at a 2024-06-30 origin).
+**Impact:** Locks the first evaluation convention. Does not change the ML target (12-month-ahead commercial price), geography, or success metric (MAE vs this baseline). Reserves target months 2025-07 through 2026-06 as the final holdout until model selection.
+**Revisit trigger:** An official month-by-month EPM/API release calendar or vintage file shows that m+3 is too strict or too loose.
+
 ## 2026-09-11 - EIA observation period is not a point-in-time availability date
 **Decision:** Current EIA retail-sales extracts remain suitable for feasibility and descriptive analysis. They must not be used as if each row were available during its observation month. Publication lag and historical revision/vintage behavior must be resolved before temporal baselines or forecasting features are finalized.
 **Evidence:** The API payload records `period` (calendar month of the statistic) and InfraLens records `retrieved_at` (extract time). It does not provide the date EIA first published or last revised each month. Point-in-time availability is still TBD in `DATA_DICTIONARY.md`.

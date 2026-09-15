@@ -7,6 +7,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from infralens.data.eia_client import redact_secrets, write_raw_eia_artifact
@@ -50,6 +51,8 @@ def test_normalize_fixture_types_and_metadata() -> None:
     assert (frame["retrieved_at"] == "2026-09-10T02:00:00+00:00").all()
     assert (frame["source_route"] == "/v2/electricity/retail-sales/data/").all()
     assert (frame["frequency"] == "monthly").all()
+    va_jan = frame.loc[(frame["period"] == "2001-01") & (frame["state_id"] == "VA")]
+    assert va_jan["assumed_available_at"].iloc[0] == pd.Timestamp("2001-04-01")
     assert "SECRET_SHOULD_NOT_APPEAR" not in frame.to_csv(index=False)
 
 

@@ -9,6 +9,7 @@ from typing import Any
 
 import pandas as pd
 
+from infralens.data.availability import assumed_available_at
 from infralens.data import (
     EIA_DATA_COLUMNS,
     EIA_FREQUENCY,
@@ -97,6 +98,7 @@ def normalize_retail_sales(
             "sales_units": raw.get("sales-units"),
             "revenue_units": raw.get("revenue-units"),
             "retrieved_at": retrieved_iso,
+            "assumed_available_at": assumed_available_at(period),
             "source": "U.S. Energy Information Administration",
             "source_route": EIA_RETAIL_SALES_ROUTE,
             "source_url": EIA_RETAIL_SALES_DATA_URL,
@@ -168,6 +170,7 @@ def validate_retail_sales(
             *measure_map.values(),
             "period_start",
             "retrieved_at",
+            "assumed_available_at",
             "source",
             "source_route",
         ]

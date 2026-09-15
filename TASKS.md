@@ -7,8 +7,8 @@
 - [x] Pull monthly commercial electricity price/sales history for PJM states.
 - [ ] Inventory archived/current PJM load-forecast files and document publication dates.
 - [x] Build first data dictionary with source, unit, frequency, availability date, and leakage risk.
-- [ ] Create seasonal-naive t-12 baseline.
-- [ ] Run first temporal backtest.
+- [x] Availability-adjusted seasonal-naive baseline (not unavailable t-12).
+- [x] Run first publication-lag-constrained current-vintage backtest.
 
 ## Next
 - [ ] Regularized linear baseline.
