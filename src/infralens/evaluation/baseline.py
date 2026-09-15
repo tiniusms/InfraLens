@@ -11,6 +11,10 @@ class BaselineError(ValueError):
     """Raised when a leak-free seasonal-naive prediction cannot be formed."""
 
 
+class NoAnalogError(BaselineError):
+    """Raised when no same-calendar-month analog is available at the origin."""
+
+
 def target_period_for_origin(forecast_origin: pd.Timestamp) -> str:
     """Calendar month 12 months after the origin's calendar month (YYYY-MM)."""
     origin = pd.Timestamp(forecast_origin)
@@ -56,7 +60,7 @@ def availability_adjusted_seasonal_naive(
     usable = usable.loc[usable["period"] != target_period]
     usable = usable.dropna(subset=["price_cents_per_kwh"])
     if usable.empty:
-        raise BaselineError(
+        raise NoAnalogError(
             f"No available same-month analog for {state_id} at {origin.date()} "
             f"(target {target_period})."
         )

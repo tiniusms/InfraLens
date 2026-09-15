@@ -96,6 +96,14 @@ def test_backtest_never_uses_rows_after_origin() -> None:
         window="unit-test",
     )
     assert result.n_forecasts == 2
+    assert result.n_attempted == 2
+    assert result.n_skipped_no_analog == 0
+    assert result.n_skipped_missing_actual == 0
+    assert result.n_attempted == (
+        result.n_forecasts
+        + result.n_skipped_no_analog
+        + result.n_skipped_missing_actual
+    )
     assert (
         result.predictions["source_assumed_available_at"]
         > result.predictions["forecast_origin"]
@@ -104,3 +112,81 @@ def test_backtest_never_uses_rows_after_origin() -> None:
     assert "2024-06" not in set(result.predictions["source_period"])
     assert result.predictions["target_period"].eq("2025-06").all()
     assert result.predictions["target_period"].lt(HOLDOUT_TARGET_START).all()
+
+
+def _boundary_panel() -> pd.DataFrame:
+    """June (development) and July/August (holdout) actuals with t-24 analogs."""
+    rows = [
+        ("2023-06", "VA", 10.0, "2023-09-01"),
+        ("2025-06", "VA", 12.0, "2025-09-01"),
+        ("2023-07", "VA", 20.0, "2023-10-01"),
+        ("2025-07", "VA", 22.0, "2025-10-01"),
+        ("2023-08", "VA", 30.0, "2023-11-01"),
+        ("2025-08", "VA", 32.0, "2025-11-01"),
+    ]
+    return pd.DataFrame(
+        rows,
+        columns=["period", "state_id", "price_cents_per_kwh", "assumed_available_at"],
+    )
+
+
+def test_backtest_excludes_holdout_targets_when_origin_end_extends() -> None:
+    frame = _boundary_panel()
+    development = run_expanding_backtest(
+        frame,
+        origin_start="2024-06",
+        origin_end="2024-06",
+        states=("VA",),
+        window="unit-test-dev",
+    )
+    extended = run_expanding_backtest(
+        frame,
+        origin_start="2024-06",
+        origin_end="2025-08",
+        states=("VA",),
+        window="unit-test-extended",
+    )
+    assert (development.predictions["target_period"] >= HOLDOUT_TARGET_START).sum() == 0
+    assert (extended.predictions["target_period"] >= HOLDOUT_TARGET_START).sum() == 0
+    assert set(development.predictions["target_period"]) == {"2025-06"}
+    assert set(extended.predictions["target_period"]) == {"2025-06"}
+    assert development.n_forecasts == extended.n_forecasts == 1
+    assert development.n_attempted == extended.n_attempted
+    scored_dev = development.predictions.sort_values(["state_id", "target_period"])
+    scored_ext = extended.predictions.sort_values(["state_id", "target_period"])
+    pd.testing.assert_frame_equal(
+        scored_dev.reset_index(drop=True),
+        scored_ext.reset_index(drop=True),
+    )
+
+
+def test_backtest_reports_skip_reasons() -> None:
+    rows = [
+        ("2023-06", "VA", 10.0, "2023-09-01"),
+        ("2025-06", "VA", 12.0, "2025-09-01"),
+        ("2024-06", "PA", 88.0, "2024-09-01"),
+        ("2025-06", "PA", 13.0, "2025-09-01"),
+        ("2023-06", "OH", 9.0, "2023-09-01"),
+    ]
+    frame = pd.DataFrame(
+        rows,
+        columns=["period", "state_id", "price_cents_per_kwh", "assumed_available_at"],
+    )
+    result = run_expanding_backtest(
+        frame,
+        origin_start="2024-06",
+        origin_end="2024-06",
+        states=("VA", "PA", "OH"),
+        window="unit-test-skips",
+    )
+    assert result.n_attempted == 3
+    assert result.n_forecasts == 1
+    assert result.n_skipped_no_analog == 1
+    assert result.n_skipped_missing_actual == 1
+    assert result.n_attempted == (
+        result.n_forecasts
+        + result.n_skipped_no_analog
+        + result.n_skipped_missing_actual
+    )
+    assert set(result.predictions["state_id"]) == {"VA"}
+

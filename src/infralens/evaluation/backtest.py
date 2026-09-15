@@ -12,6 +12,7 @@ from infralens.data import USER_FACING_STATES, repository_root
 from infralens.data.availability import add_assumed_available_at
 from infralens.evaluation.baseline import (
     BaselineError,
+    NoAnalogError,
     availability_adjusted_seasonal_naive,
     target_period_for_origin,
 )
@@ -26,6 +27,9 @@ class BacktestResult:
     mae_overall: float
     mae_by_state: dict[str, float]
     n_forecasts: int
+    n_attempted: int
+    n_skipped_no_analog: int
+    n_skipped_missing_actual: int
     window: str
 
 
@@ -72,21 +76,27 @@ def run_expanding_backtest(
         for row in work.itertuples(index=False)
     }
     records: list[dict[str, object]] = []
+    n_attempted = 0
+    n_skipped_no_analog = 0
+    n_skipped_missing_actual = 0
     for origin in month_end_origins(origin_start, origin_end):
         target_period = target_period_for_origin(origin)
         if target_period >= HOLDOUT_TARGET_START:
             continue
         for state in states:
+            n_attempted += 1
             try:
                 pred = availability_adjusted_seasonal_naive(
                     work,
                     forecast_origin=origin,
                     state_id=state,
                 )
-            except BaselineError:
+            except NoAnalogError:
+                n_skipped_no_analog += 1
                 continue
             actual = actuals.get((state.upper(), target_period))
             if actual is None or pd.isna(actual):
+                n_skipped_missing_actual += 1
                 continue
             if pd.Timestamp(pred["source_assumed_available_at"]) > origin:
                 raise BaselineError("Leakage in backtest output.")
@@ -97,6 +107,13 @@ def run_expanding_backtest(
                     "absolute_error": abs(float(pred["prediction_cents_per_kwh"]) - float(actual)),
                 }
             )
+    n_scored = len(records)
+    if n_attempted != n_scored + n_skipped_no_analog + n_skipped_missing_actual:
+        raise BaselineError(
+            "Skip accounting invariant failed: attempted != scored + skipped."
+        )
+    if n_attempted == 0:
+        raise BaselineError("Backtest produced no development forecast cells.")
     if not records:
         raise BaselineError("Backtest produced no scored forecasts.")
     predictions = pd.DataFrame.from_records(records)
@@ -112,7 +129,10 @@ def run_expanding_backtest(
         predictions=predictions,
         mae_overall=mae_overall,
         mae_by_state=mae_by_state,
-        n_forecasts=int(len(predictions)),
+        n_forecasts=n_scored,
+        n_attempted=n_attempted,
+        n_skipped_no_analog=n_skipped_no_analog,
+        n_skipped_missing_actual=n_skipped_missing_actual,
         window=window,
     )
 
@@ -120,6 +140,10 @@ def run_expanding_backtest(
 def _print_result(result: BacktestResult, parquet_path: Path) -> None:
     print(f"window: {result.window}")
     print(f"parquet: {parquet_path}")
+    print(f"n_attempted: {result.n_attempted}")
+    print(f"n_scored: {result.n_forecasts}")
+    print(f"n_skipped_no_analog: {result.n_skipped_no_analog}")
+    print(f"n_skipped_missing_actual: {result.n_skipped_missing_actual}")
     print(f"n_forecasts: {result.n_forecasts}")
     print(f"mae_overall_cents_per_kwh: {result.mae_overall:.4f}")
     print("mae_by_state_cents_per_kwh:")

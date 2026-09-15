@@ -57,10 +57,15 @@ Example:
 
 Extract: `data/interim/eia_retail_sales_monthly_com_20260911T190524Z.parquet`.
 
-- Forecasts: **1,350** (270 origins × 5 states)
+- Forecasts attempted (development window): **1,350**
+- Forecasts scored: **1,350**
+- Skipped, no available seasonal analog: **0**
+- Skipped, missing/NaN actual: **0**
 - Leakage violations: **0**
 - Overall MAE: **0.779 ¢/kWh**
 - MAE by state (¢/kWh): MD **1.229**, NJ **0.956**, OH **0.507**, PA **0.610**, VA **0.594**
+
+This development run had **zero skipped forecasts**. Future skipped cells must be disclosed in the backtest report (`n_attempted`, `n_scored`/`n_forecasts`, `n_skipped_no_analog`, `n_skipped_missing_actual`) rather than silently excluded. Holdout target months are not attempted cells; they are isolated from scoring.
 
 Primary metric remains MAE in cents per kWh, overall and by state.
 
