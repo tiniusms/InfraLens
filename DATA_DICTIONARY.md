@@ -1,6 +1,6 @@
 # InfraLens Data Dictionary
 
-First feasibility extract only. No feature engineering or modeling. Values below describe the live EIA pull retrieved `2026-09-10T03:59:06Z`.
+First feasibility extract, plus the lagged fields the Ridge baseline builds at forecast time. Those fields are not stored as Parquet columns. Values below describe the live EIA pull retrieved `2026-09-10T03:59:06Z`.
 
 **Dataset:** monthly commercial (COM) retail electricity sales to ultimate customers  
 **Geography:** Maryland, New Jersey, Ohio, Pennsylvania, Virginia  
@@ -41,9 +41,9 @@ A conflicting EIA API documentation example sometimes lists price in dollars per
 | `state_name` | EIA `stateDescription` | State name. | Text | Monthly | Label | All rows | n/a | None. |
 | `sector_id` | EIA `sectorid` | End-use sector. This extract is `COM` only. | Code | Monthly | Entity key; filter | All rows | n/a | Do not mix other sectors without a dated decision. |
 | `sector_name` | EIA `sectorName` | Sector label (`commercial`). | Text | Monthly | Label | All rows | n/a | None. |
-| `price_cents_per_kwh` | EIA `price` | Average commercial retail price to ultimate customers. EIA-derived average (revenue / kWh), not a data-center tariff. **Primary ML target proxy** (12-month-ahead). | Cents per kWh | Monthly | Target (current value); not yet lagged | 2001-01 to 2026-06 | TBD | High if future months or post-revision vintages are used as features. Target at t+12 must not appear in features at origin t. |
-| `sales_million_kwh` | EIA `sales` | Commercial electricity sold to ultimate customers. | Million kWh | Monthly | Supporting measure (not a feature yet) | 2001-01 to 2026-06 | TBD | High if contemporaneous or future sales are used to predict future price without a lag rule. |
-| `revenue_million_usd` | EIA `revenue` | Revenue from commercial sales to ultimate customers. | Million USD | Monthly | Supporting measure (not a feature yet) | 2001-01 to 2026-06 | TBD | Same as sales. Algebraically tied to price. |
+| `price_cents_per_kwh` | EIA `price` | Average commercial retail price to ultimate customers. EIA-derived average (revenue / kWh), not a data-center tariff. **Primary ML target proxy** (12-month-ahead). Lagged copies are Ridge inputs. | Cents per kWh | Monthly | Target at t+12; source of lagged price features | 2001-01 to 2026-06 | Assumed available on the first day of month m+3 | High if future months or post-revision vintages are used as features. Target at t+12 must not appear in features at origin t. |
+| `sales_million_kwh` | EIA `sales` | Commercial electricity sold to ultimate customers. | Million kWh | Monthly | Lagged Ridge input (latest level and 12-month change) | 2001-01 to 2026-06 | Assumed available on the first day of month m+3 | High if contemporaneous or future sales are used to predict future price without a lag rule. |
+| `revenue_million_usd` | EIA `revenue` | Revenue from commercial sales to ultimate customers. | Million USD | Monthly | Not a Ridge feature. Algebraically tied to price. | 2001-01 to 2026-06 | Assumed available on the first day of month m+3 | Same as sales. Do not add it beside lagged price and sales. |
 | `price_units` | EIA `price-units` | Unit string supplied by the API. | Text | Monthly | Metadata | All rows | n/a | None. |
 | `sales_units` | EIA `sales-units` | Unit string supplied by the API. | Text | Monthly | Metadata | All rows | n/a | None. |
 | `revenue_units` | EIA `revenue-units` | Unit string supplied by the API. | Text | Monthly | Metadata | All rows | n/a | None. |
@@ -53,6 +53,25 @@ A conflicting EIA API documentation example sometimes lists price in dollars per
 | `source` | InfraLens | `U.S. Energy Information Administration`. | Text | Constant | Lineage | All rows | n/a | None. |
 | `source_route` | InfraLens | `/v2/electricity/retail-sales/data/`. | Text | Constant | Lineage | All rows | n/a | None. |
 | `source_url` | InfraLens | HTTPS endpoint used for retrieval (no key). | URL | Constant | Lineage | All rows | n/a | None. |
+
+## Derived model features
+
+Built in `src/infralens/evaluation/features.py` at each forecast origin. They are not columns in the interim Parquet. A source month is eligible only when `assumed_available_at <= forecast_origin`. If a required month is missing or null, the case is skipped. It is not filled from a later month.
+
+| Feature | Definition | Point-in-time rule |
+| --- | --- | --- |
+| `price_latest` | Commercial price on the latest available month for that state. | That month's `assumed_available_at` is on or before the origin. |
+| `price_same_month` | Availability-adjusted seasonal-naive price for the target calendar month. | Same function as the baseline. The conventional t-12 month is not used when it is still unpublished. |
+| `price_yoy_change` | `price_latest` minus the price 12 months earlier. | Both months must already be available. |
+| `price_trail12_mean` | Mean price over the 12 consecutive months ending at the latest available month. | A hole in that window skips the case. |
+| `sales_latest` | Sales on the latest available month. | Same month as `price_latest`. |
+| `sales_yoy_change` | Sales change versus 12 months earlier. | Same months as `price_yoy_change`. |
+| `state_id` | State code. | Known geography. Ridge one-hot encodes it inside the training fold. The tree model ordinal-encodes it inside the training fold. |
+| `target_calendar_month` | Calendar month of the 12-month-ahead target. | Known from the origin. It is not an EIA observation. Because the horizon is 12 months, it equals the origin month. Encoded the same way as `state_id`. |
+
+`revenue_million_usd` is excluded because published price is the revenue/sales average. PJM zonal fields are not features in this model.
+
+The histogram gradient-boosting candidate uses this same list. Its ordinal encoder is fit on that origin's training rows only. An unseen state or month skips the case. Numeric features are not standardized; the booster fits histogram bin edges on the training fold.
 
 ## Quality notes (observed, not edited)
 

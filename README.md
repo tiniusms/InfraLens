@@ -34,9 +34,12 @@ pip install -e ".[dev]"
 cp .env.example .env        # then add an EIA API key: https://www.eia.gov/opendata/register.php
 pytest
 python -m infralens.data.eia_ingest
+python -m infralens.evaluation.backtest
+python -m infralens.evaluation.linear
+python -m infralens.evaluation.tree
 ```
 
-HTTP client for this sprint is `httpx` (not `requests`). Later stack pieces (XGBoost, SHAP, MLflow, Streamlit, Docker) are intentionally not installed yet.
+HTTP client for this sprint is `httpx` (not `requests`). XGBoost, SHAP, MLflow, Streamlit, and Docker are not installed. MLflow stays deferred (`DECISIONS.md`, 2026-09-29). The selected EIA model is Ridge with feature set `eia_commercial_price_v1`.
 
 Raw EIA JSON is written under `data/raw/eia/` and the matching interim Parquet under `data/interim/`. Both filenames share the same UTC retrieval timestamp. There is no mutable “latest” Parquet alias. API keys are never logged; echoed `api_key` fields are redacted before the raw file is saved.
 
