@@ -92,6 +92,22 @@ Built in `src/infralens/evaluation/intervals.py` from the frozen Ridge rolling-o
 | `interval_status` | `interval`, or `insufficient_residual_history` when `n < 24` or `k > n`. |
 | `covered` | Whether the actual lies inside the closed interval. Empty when no interval was emitted. |
 
+## Ridge explanation columns
+
+Built in `src/infralens/evaluation/explain.py` from the Ridge pipeline fitted at that forecast origin. They are not columns in the interim Parquet, not additional model features, and not causal effects. Ridge is refit at every origin, so a coefficient from one origin is not the InfraLens model. Numeric values are the raw feature and the within-origin standardized value. State and month terms are one-hot contrasts against the category dropped by that origin's encoder. On the scored development origins those references are Maryland and month `01`. A dropped reference has no coefficient column.
+
+| Column | Definition |
+| --- | --- |
+| `transformed_feature_name` | Pipeline column, such as `num__price_latest` or `cat__state_id_NJ`. |
+| `feature_group` | `numeric`, `state`, or `month`. Compare magnitudes only inside a group. |
+| `category` | One-hot level for a state or month term. Empty for a numeric term. |
+| `raw_numeric_value` | Feature value before standardization. Empty for a categorical term. |
+| `transformed_value` | Standardized numeric value, or 0/1 for a one-hot column. |
+| `coefficient` | Ridge coefficient on that transformed column at this origin. |
+| `contribution` | `transformed_value * coefficient`, in ¢/kWh. |
+| `scaler_mean` / `scaler_scale` | Training-fold scaler parameters for a numeric term. |
+| `reference_state` / `reference_month` | Categories dropped by this origin's encoder. |
+
 ## Quality notes (observed, not edited)
 
 - Missing values: none in the interim Parquet. Duplicates on `state_id` × `period` × `sector_id`: none.

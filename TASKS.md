@@ -13,9 +13,9 @@
 - [x] Histogram gradient-boosting EIA candidate on the same features and development backtest. Holdout still untouched.
 - [x] Select Ridge on the 1,145-case development comparison and freeze that model class and feature set. Holdout still untouched.
 - [x] State-specific 80% absolute-residual intervals for the frozen Ridge model. Development evaluation only. Holdout still untouched. Method not retuned.
+- [x] Exact Ridge coefficient explanations for each development origin. Not SHAP. Holdout still untouched.
 
 ## Next
-- [ ] Ridge coefficient and prediction-contribution explanations (method fixed in `EVALUATION.md`; not SHAP).
 - [ ] Financial engine + unit tests.
 - [ ] Streamlit MVP.
 - [ ] Execute the written final-holdout protocol in `EVALUATION.md` only after the interval method, if coverage is to be scored with the price model. Do not open the holdout while implementing the steps above.

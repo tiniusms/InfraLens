@@ -38,9 +38,10 @@ python -m infralens.evaluation.backtest
 python -m infralens.evaluation.linear
 python -m infralens.evaluation.tree
 python -m infralens.evaluation.intervals
+python -m infralens.evaluation.explain
 ```
 
-HTTP client for this sprint is `httpx` (not `requests`). XGBoost, SHAP, MLflow, Streamlit, and Docker are not installed. MLflow stays deferred (`DECISIONS.md`, 2026-09-29). The selected EIA model is Ridge with feature set `eia_commercial_price_v1`. Its development uncertainty layer is a state-specific empirical absolute-residual interval with nominal 80% coverage. That nominal rate is not a guarantee of future coverage.
+HTTP client for this sprint is `httpx` (not `requests`). XGBoost, SHAP, MLflow, Streamlit, and Docker are not installed. MLflow stays deferred (`DECISIONS.md`, 2026-09-29). The selected EIA model is Ridge with feature set `eia_commercial_price_v1`. Its development uncertainty layer is a state-specific empirical absolute-residual interval with nominal 80% coverage. That nominal rate is not a guarantee of future coverage. Explanations are the origin-specific linear identity, intercept plus contributions, not SHAP and not causal effects.
 
 Raw EIA JSON is written under `data/raw/eia/` and the matching interim Parquet under `data/interim/`. Both filenames share the same UTC retrieval timestamp. There is no mutable “latest” Parquet alias. API keys are never logged; echoed `api_key` fields are redacted before the raw file is saved.
 

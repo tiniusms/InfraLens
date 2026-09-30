@@ -68,3 +68,18 @@ Final-holdout target months 2025-07 through 2026-06 are not in this log.
 - Newest scored target month: 2025-06
 - Entry point: `python -m infralens.evaluation.intervals`
 - Nominal 80% is the order statistic, not a guarantee of future coverage.
+
+## 2026-09-30 - Ridge coefficient explanations
+
+- Stage: development
+- Point forecast: frozen Ridge, MAE 0.7075 ¢/kWh on 1,145 cases (unchanged)
+- Identity: `prediction = intercept + sum(transformed_value * coefficient)`
+- Maximum absolute reconstruction error: 3.553e-15 ¢/kWh
+- Scored origins: 229
+- Reference categories, constant across those origins: state `MD`, target month `01`
+- These coefficients are origin-specific. The medians below are a stability summary, not one global model, and not causal effects.
+- Numeric coefficients are on within-origin standardized features. State and month coefficients are contrasts against the dropped reference, not comparable to the numeric scale.
+- Sign changes with a range larger than a small neighborhood of zero: `price_trail12_mean` (negative at 11/229), `sales_latest` (positive at 33/229), and the NJ, OH, and PA contrasts versus Maryland. Virginia's contrast stays negative. `price_latest`, `price_same_month`, `price_yoy_change`, and `sales_yoy_change` stay positive.
+- Examples at 2024-06-30, target `2025-06`: MD 12.5808 (actual 14.82), NJ 14.2468 (actual 18.01), OH 11.1877 (actual 11.33), PA 11.2370 (actual 12.37), VA 8.1149 (actual 9.43). Maryland is the reference state on that origin.
+- Newest explained target month: 2025-06
+- Entry point: `python -m infralens.evaluation.explain`

@@ -219,19 +219,94 @@ Mean width by origin year starts at 2.76 ¢/kWh in 2008, declines to 2.02 ¢/kWh
 
 The 75–85% comparison on the final holdout has not been run.
 
-## Proposed Ridge explainability (not implemented)
+## Ridge coefficient explanations
 
-Do not add SHAP for this linear model. The Ridge prediction is already an exact sum, and SHAP for a linear pipeline restates that sum.
+Implemented in `src/infralens/evaluation/explain.py`. SHAP is not used. Ridge is refit at every scored origin, so each coefficient vector belongs to that origin. The summaries below describe how those origin-specific coefficients behave. They are not one universal InfraLens coefficient vector, and they are not causal effects.
 
-At each origin the fitted pipeline is `StandardScaler` on the six numeric features and `OneHotEncoder(drop="first")` on `state_id` and `target_calendar_month`, then Ridge. After transform, `prediction = intercept + sum(transformed_value_j * coefficient_j)`.
+At a scored origin the fitted pipeline is `StandardScaler` on the six numeric features and `OneHotEncoder(drop="first")` on `state_id` and `target_calendar_month`, then Ridge with the penalty already selected for that origin. After transform:
 
-Use three views:
+`prediction = intercept + sum(transformed_value_j * coefficient_j)`.
 
-- **Direction.** The sign of a numeric coefficient is the direction in the original feature, because the scaler's scale is positive when the training column varies.
-- **Relative magnitude.** Compare absolute numeric coefficients with each other. They are in cents per kWh per training-fold standard deviation. Compare state-dummy coefficients only with other state dummies, and month-dummy coefficients only with other month dummies. A state dummy is cents per kWh versus the dropped reference level, not versus a standardized price feature.
-- **Prediction-level contribution.** For one scored row, report the intercept and each `transformed_value_j * coefficient_j`. Those terms sum to the prediction. Inactive dummies contribute zero. The active state dummy and active month dummy each contribute their coefficient.
+Numeric coefficients are cents per kWh per training-fold standard deviation. Their magnitudes may be compared with other numeric coefficients from the same origin. State and month coefficients are contrasts against the category that origin's encoder dropped. A dropped reference is not a zero coefficient; its level is absorbed by the intercept and the other contrasts. Inactive one-hot columns do contribute zero, because the indicator is zero. That is a different statement from the missing reference column. An unseen state or month is not given a coefficient; the case is skipped, as in the Ridge backtest.
 
-The dropped reference level is the first category in sorted order in that origin's training fold. On the development origins that Ridge scores, those references are Maryland and month `01`. Say the reference in the output rather than assuming it silently. Coefficient signs may be summarized across origins as a stability count. That count is not a single global model and it is not a causal effect.
+The reference categories were read from each fitted encoder. Across all **229** scored development origins they do not change: the dropped state is **MD**, and the dropped target month is **01**.
+
+### Development coefficient summary
+
+Entry point: `python -m infralens.evaluation.explain`. The Ridge point forecast on this run remained **0.7075 ¢/kWh on 1,145 cases**. Explanations cover those same 1,145 rows. The largest absolute gap between `intercept + sum(contributions)` and the stored Ridge prediction is **3.553e-15** ¢/kWh. The newest explained target month is `2025-06`.
+
+Numeric coefficients across the 229 origins, and the coefficient at the final development origin `2024-06-30`:
+
+| Feature | Median | Minimum | Maximum | Positive origins | Final origin |
+| --- | --- | --- | --- | --- | --- |
+| `price_latest` | 0.391784 | 0.012433 | 0.467539 | 229/229 | 0.399325 |
+| `price_same_month` | 0.767132 | 0.373875 | 1.436008 | 229/229 | 0.681656 |
+| `price_yoy_change` | 0.292053 | 0.060454 | 0.471632 | 229/229 | 0.289628 |
+| `price_trail12_mean` | 0.464477 | -1.015240 | 0.825787 | 218/229 | 0.459074 |
+| `sales_latest` | -0.158993 | -0.672176 | 0.340149 | 33/229 | -0.202147 |
+| `sales_yoy_change` | 0.083314 | 0.002852 | 0.396247 | 229/229 | 0.126533 |
+
+`price_latest`, `price_same_month`, `price_yoy_change`, and `sales_yoy_change` stay positive at every scored origin. `price_trail12_mean` is negative at 11 origins (range about -1.02 to 0.83). `sales_latest` is negative at 196 origins and positive at 33 (range about -0.67 to 0.34). Those sign changes are large relative to a tenth of a cent per standardized unit. They describe the rolling fits. They do not identify a cause.
+
+State contrasts versus Maryland:
+
+| Contrast | Median | Minimum | Maximum | Positive origins | Final origin |
+| --- | --- | --- | --- | --- | --- |
+| NJ | 0.311446 | -2.581915 | 3.328628 | 212/229 | 0.421063 |
+| OH | -0.073394 | -2.670166 | 1.619723 | 1/229 | -0.029644 |
+| PA | -0.111696 | -3.132442 | 2.687102 | 1/229 | -0.082345 |
+| VA | -0.327488 | -2.097526 | -0.094490 | 0/229 | -0.330349 |
+
+Virginia's contrast with Maryland stays negative. New Jersey is positive at 212 origins and negative at 17. Ohio and Pennsylvania are negative at 228 origins and positive at one origin each. Those ranges are wide. Do not compare these contrasts with the standardized numeric coefficients as if the units matched.
+
+Month contrasts versus January also change sign for February, March, May, June, September, October, and November. March stays inside about -0.07 to 0.07. April, July, August, and December do not change sign: April and December stay negative; July and August stay positive. Full month ranges are in the command output.
+
+### Examples at 2024-06-30
+
+Target month `2025-06` for every state. Shared intercept **9.946799**. June's contrast with January contributes **0.089438** in every state. Maryland is the reference state, so it has no separate state coefficient. Reconstruction error on each row is within the 3.553e-15 maximum above.
+
+| State | Prediction | Actual | Signed error | State term | Contribution |
+| --- | --- | --- | --- | --- | --- |
+| MD | 12.5808 | 14.82 | 2.2392 | reference MD | none |
+| NJ | 14.2468 | 18.01 | 3.7632 | contrast vs MD | 0.421063 |
+| OH | 11.1877 | 11.33 | 0.1423 | contrast vs MD | -0.029644 |
+| PA | 11.2370 | 12.37 | 1.1330 | contrast vs MD | -0.082345 |
+| VA | 8.1149 | 9.43 | 1.3151 | contrast vs MD | -0.330349 |
+
+Numeric contributions at that same origin. The coefficient column is shared across states; the raw value, standardized value, and contribution are not.
+
+| State | Feature | Raw | Standardized | Coefficient | Contribution |
+| --- | --- | --- | --- | --- | --- |
+| MD | `price_latest` | 12.680000 | 1.467203 | 0.399325 | 0.585891 |
+| MD | `price_same_month` | 12.500000 | 1.455973 | 0.681656 | 0.992473 |
+| MD | `price_yoy_change` | 0.160000 | -0.026005 | 0.289628 | -0.007532 |
+| MD | `price_trail12_mean` | 12.565833 | 1.507690 | 0.459074 | 0.692141 |
+| MD | `sales_latest` | 2132.559820 | -1.631016 | -0.202147 | 0.329705 |
+| MD | `sales_yoy_change` | -59.914290 | -0.380321 | 0.126533 | -0.048123 |
+| NJ | `price_latest` | 13.900000 | 2.069053 | 0.399325 | 0.826224 |
+| NJ | `price_same_month` | 14.870000 | 2.632576 | 0.681656 | 1.794511 |
+| NJ | `price_yoy_change` | 0.400000 | 0.311067 | 0.289628 | 0.090094 |
+| NJ | `price_trail12_mean` | 13.990833 | 2.236718 | 0.459074 | 1.026819 |
+| NJ | `sales_latest` | 3089.364950 | -0.386747 | -0.202147 | 0.078180 |
+| NJ | `sales_yoy_change` | -15.894960 | -0.208370 | 0.126533 | -0.026366 |
+| OH | `price_latest` | 11.200000 | 0.737090 | 0.399325 | 0.294338 |
+| OH | `price_same_month` | 10.970000 | 0.696395 | 0.681656 | 0.474702 |
+| OH | `price_yoy_change` | 0.840000 | 0.929032 | 0.289628 | 0.269074 |
+| OH | `price_trail12_mean` | 10.870833 | 0.640530 | 0.459074 | 0.294051 |
+| OH | `sales_latest` | 3870.375850 | 0.628911 | -0.202147 | -0.127132 |
+| OH | `sales_yoy_change` | -10.980550 | -0.189173 | 0.126533 | -0.023937 |
+| PA | `price_latest` | 11.270000 | 0.771622 | 0.399325 | 0.308128 |
+| PA | `price_same_month` | 11.220000 | 0.820509 | 0.681656 | 0.559305 |
+| PA | `price_yoy_change` | 0.120000 | -0.082184 | 0.289628 | -0.023803 |
+| PA | `price_trail12_mean` | 11.092500 | 0.753934 | 0.459074 | 0.346112 |
+| PA | `sales_latest` | 2949.637840 | -0.568454 | -0.202147 | 0.114911 |
+| PA | `sales_yoy_change` | -6.189920 | -0.170459 | 0.126533 | -0.021569 |
+| VA | `price_latest` | 8.720000 | -0.486343 | 0.399325 | -0.194209 |
+| VA | `price_same_month` | 8.970000 | -0.296519 | 0.681656 | -0.202124 |
+| VA | `price_yoy_change` | -0.470000 | -0.910819 | 0.289628 | -0.263799 |
+| VA | `price_trail12_mean` | 8.821667 | -0.407820 | 0.459074 | -0.187220 |
+| VA | `sales_latest` | 6082.920380 | 3.506195 | -0.202147 | -0.708767 |
+| VA | `sales_yoy_change` | -33.100950 | -0.275581 | 0.126533 | -0.034870 |
 
 ## Final holdout protocol (do not execute in the selection freeze)
 
