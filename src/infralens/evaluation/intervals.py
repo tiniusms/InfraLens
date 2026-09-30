@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from math import ceil
 
+import numpy as np
 import pandas as pd
 
 from infralens.evaluation.backtest import (
@@ -109,6 +110,45 @@ def absolute_residuals(predictions: pd.DataFrame) -> pd.Series:
     return (actual - predicted).abs()
 
 
+def absolute_residual_interval(
+    *,
+    point_prediction: float,
+    actual: float | None,
+    residuals: np.ndarray,
+) -> dict[str, object]:
+    """Symmetric 80% interval around one point forecast.
+
+    ``residuals`` are absolute errors from earlier out-of-sample predictions.
+    The scored case is not part of this array. No mean residual is subtracted.
+    """
+    ordered = np.sort(np.asarray(residuals, dtype=float))
+    n = int(ordered.size)
+    k = order_statistic_index(n)
+    point = float(point_prediction)
+    result: dict[str, object] = {
+        "n_calibration_residuals": n,
+        "k": k,
+        "half_width_cents_per_kwh": None,
+        "lower_cents_per_kwh": None,
+        "upper_cents_per_kwh": None,
+        "width_cents_per_kwh": None,
+        "interval_status": STATUS_INSUFFICIENT_RESIDUAL_HISTORY,
+        "covered": None,
+    }
+    if n >= MIN_CALIBRATION_RESIDUALS and k <= n:
+        half_width = float(ordered[k - 1])
+        lower = point - half_width
+        upper = point + half_width
+        result["half_width_cents_per_kwh"] = half_width
+        result["lower_cents_per_kwh"] = lower
+        result["upper_cents_per_kwh"] = upper
+        result["width_cents_per_kwh"] = half_width * 2.0
+        result["interval_status"] = STATUS_INTERVAL
+        if actual is not None and not pd.isna(actual):
+            result["covered"] = bool(lower <= float(actual) <= upper)
+    return result
+
+
 def build_ridge_intervals(
     predictions: pd.DataFrame,
     *,
@@ -148,34 +188,40 @@ def build_ridge_intervals(
             holdout_target_start=holdout_target_start,
         )
         pool = source.loc[mask]
-        residuals = absolute_residuals(pool).sort_values(kind="mergesort").to_numpy()
-        n = int(residuals.size)
-        k = order_statistic_index(n)
+        residuals = absolute_residuals(pool).to_numpy(dtype=float)
         point = float(case["ridge_prediction_cents_per_kwh"])
         actual = float(case["actual_cents_per_kwh"])
+        interval = absolute_residual_interval(
+            point_prediction=point,
+            actual=actual,
+            residuals=residuals,
+        )
         record: dict[str, object] = {
             "state_id": str(case["state_id"]),
             "forecast_origin": pd.Timestamp(case["forecast_origin"]),
             "target_period": str(case["target_period"]),
             "ridge_prediction_cents_per_kwh": point,
             "actual_cents_per_kwh": actual,
-            "n_calibration_residuals": n,
-            "k": k,
-            "half_width_cents_per_kwh": pd.NA,
-            "lower_cents_per_kwh": pd.NA,
-            "upper_cents_per_kwh": pd.NA,
-            "interval_status": STATUS_INSUFFICIENT_RESIDUAL_HISTORY,
-            "covered": pd.NA,
+            "n_calibration_residuals": interval["n_calibration_residuals"],
+            "k": interval["k"],
+            "half_width_cents_per_kwh": (
+                pd.NA
+                if interval["half_width_cents_per_kwh"] is None
+                else interval["half_width_cents_per_kwh"]
+            ),
+            "lower_cents_per_kwh": (
+                pd.NA
+                if interval["lower_cents_per_kwh"] is None
+                else interval["lower_cents_per_kwh"]
+            ),
+            "upper_cents_per_kwh": (
+                pd.NA
+                if interval["upper_cents_per_kwh"] is None
+                else interval["upper_cents_per_kwh"]
+            ),
+            "interval_status": interval["interval_status"],
+            "covered": pd.NA if interval["covered"] is None else interval["covered"],
         }
-        if n >= MIN_CALIBRATION_RESIDUALS and k <= n:
-            half_width = float(residuals[k - 1])
-            lower = point - half_width
-            upper = point + half_width
-            record["half_width_cents_per_kwh"] = half_width
-            record["lower_cents_per_kwh"] = lower
-            record["upper_cents_per_kwh"] = upper
-            record["interval_status"] = STATUS_INTERVAL
-            record["covered"] = bool(lower <= actual <= upper)
         records.append(record)
 
     intervals = pd.DataFrame.from_records(records, columns=list(INTERVAL_COLUMNS))

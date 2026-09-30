@@ -83,3 +83,11 @@ Final-holdout target months 2025-07 through 2026-06 are not in this log.
 - Examples at 2024-06-30, target `2025-06`: MD 12.5808 (actual 14.82), NJ 14.2468 (actual 18.01), OH 11.1877 (actual 11.33), PA 11.2370 (actual 12.37), VA 8.1149 (actual 9.43). Maryland is the reference state on that origin.
 - Newest explained target month: 2025-06
 - Entry point: `python -m infralens.evaluation.explain`
+
+## 2026-09-30 - Final holdout runner committed, not executed
+
+- Stage: not run
+- Command: `python -m infralens.evaluation.final_holdout`
+- The command accepts no options and has not been pointed at the EIA extract.
+- No target month from 2025-07 through 2026-06 has been scored.
+- Development uncertainty and Ridge explanations above were already committed. They are development results, not holdout results.

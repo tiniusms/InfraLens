@@ -308,17 +308,21 @@ Numeric contributions at that same origin. The coefficient column is shared acro
 | VA | `sales_latest` | 6082.920380 | 3.506195 | -0.202147 | -0.708767 |
 | VA | `sales_yoy_change` | -33.100950 | -0.275581 | 0.126533 | -0.034870 |
 
-## Final holdout protocol (do not execute in the selection freeze)
+## Final holdout protocol (implemented, not executed)
 
-This protocol is the only authorized way to score target months `2025-07` through `2026-06`. It has not been run.
+This protocol is the only authorized way to score target months `2025-07` through `2026-06`. The command is `python -m infralens.evaluation.final_holdout`. It accepts no options. It has not been executed, and this file does not contain a holdout score.
 
-1. **Model.** Ridge, through the existing `run_ridge_backtest` procedure. No new estimator.
+Development uncertainty (`333b754`) and Ridge explanations (`787ce42`) were run and committed before this runner. The 2026-09-29 decision says those methods were not executed *in that decision*. That sentence does not mean they were never run on the development window.
+
+`run_ridge_backtest` still refuses to score holdout targets. The final command reuses `select_alpha`, `fit_ridge`, and `training_cases_for_origin` on the locked 60-cell grid, with training targets kept before `2025-07`. It does not define a second model. Holdout explanations are not part of the command; `explain_prediction` can explain a stored prediction afterward and does not affect the comparison.
+
+1. **Model.** Ridge, through the frozen helpers above. No new estimator.
 2. **Features.** Exactly `eia_commercial_price_v1`: `price_latest`, `price_same_month`, `price_yoy_change`, `price_trail12_mean`, `sales_latest`, `sales_yoy_change`, `state_id`, `target_calendar_month`.
 3. **Penalty.** The frozen procedure in `DECISIONS.md` (grid `0.01, 0.1, 1, 10, 100, 1000`; last 12 training origins for inner MAE; at least 12 earlier origins to fit; ties keep the larger penalty; refit on eligible pre-origin rows). Do not replace that procedure with the development mode of 100.
 4. **Origins.** Month-end origins `2024-07-31` through `2025-06-30`. Targets are `2025-07` through `2026-06`. Development origins stay in the training history when their labels are already available. The scored holdout origin is excluded from its own fit.
 5. **Training guard.** A row whose target month is `2025-07` or later is never a training row and never an inner-validation row, including at later origins. The current m+3 lag already keeps those actuals unpublished throughout this origin window. Keep the code guard anyway.
 6. **Benchmark.** Availability-adjusted seasonal naive, same definition as development. Primary comparison is paired: same state, same origin, same target month, on cases Ridge scores. Also print the already recorded full development seasonal-naive MAE (`0.7793` ¢/kWh, 1,350 cases) so it is not used as the holdout denominator.
-7. **Metric.** MAE in ¢/kWh. Improvement = seasonal-naive MAE minus Ridge MAE on the paired holdout cases. Percent = `100 * improvement / seasonal-naive MAE`. The success threshold, set before modeling, is at least **10%** lower holdout MAE than that paired seasonal naive. Report overall MAE and MAE by state for both models, plus attempted, scored, and skip counts.
+7. **Metric.** MAE in ¢/kWh on the paired scored cases only. The primary ratio is `(paired baseline MAE - Ridge MAE) / paired baseline MAE`. The run passes only when that ratio is at least **0.10** (10% lower MAE). State MAE is reported and cannot change the pass/fail result. The full development seasonal-naive MAE is not the denominator.
 8. **Uncertainty.** Apply the implemented residual method unchanged at each holdout origin and report empirical coverage and mean width, overall and by state. The coverage check is 75–85% for the nominal 80% interval. Do not change `k`, the minimum of 24, or the Ridge point forecast after seeing holdout prices. Development coverage, including state slices outside 75–85%, is not a reason to change the method.
 9. **Outputs.** One table of paired holdout MAE overall and by state; skip accounting; the penalty selected at each holdout origin and the count of each penalty; feature-set id `eia_commercial_price_v1`; the EIA extract filename; the stage label `final_holdout`. If intervals exist, a second table of coverage, mean width, and the number of cases without an interval.
 10. **After the run.** Holdout results are descriptive. They do not add a model, drop a feature, retune a penalty, or refit state by state. The tree model is not re-scored on the holdout in order to reopen model selection.

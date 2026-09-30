@@ -46,6 +46,14 @@ InfraLens is a **screening and decision-support tool**, not an engineering inter
 - 100% traceability from dashboard output to model version, data date, and assumptions.
 - Cached candidate analysis returns in <5 seconds on a standard laptop.
 
+Clarified 2026-09-30, before any final-holdout score:
+
+The primary pass/fail rule is: at least 10% lower MAE for frozen Ridge than the availability-adjusted seasonal-naive baseline on identical paired final-holdout cases (target months 2025-07 through 2026-06). State-level MAE is descriptive only.
+
+The regularized-linear criterion was resolved in development on 2026-09-29, when Ridge had lower development MAE than the histogram-gradient-boosting candidate. That comparison is closed and is not a second final-holdout gate.
+
+The 75–85% interval-coverage range is a diagnostic calibration check. It is not the primary model pass/fail gate and it is not a reason to retune.
+
 ## 7. Engineering stack
 Python -> EIA/PJM/FERC/EPA -> Parquet -> DuckDB -> pandas/polars as needed -> scikit-learn + XGBoost/HistGradientBoosting -> MLflow -> SHAP -> Streamlit -> Docker -> GitHub.
 
