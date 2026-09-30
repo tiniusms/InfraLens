@@ -73,6 +73,25 @@ Built in `src/infralens/evaluation/features.py` at each forecast origin. They ar
 
 The histogram gradient-boosting candidate uses this same list. Its ordinal encoder is fit on that origin's training rows only. An unseen state or month skips the case. Numeric features are not standardized; the booster fits histogram bin edges on the training fold.
 
+## Ridge interval audit columns
+
+Built in `src/infralens/evaluation/intervals.py` from the frozen Ridge rolling-origin predictions. They are not columns in the interim Parquet, and they are not additional model features. Nominal coverage is 80%. That label is the order statistic, not a claim that a future window will cover 80% of actuals.
+
+| Column | Definition |
+| --- | --- |
+| `state_id` | State of the scored Ridge forecast. Calibration uses that state only. |
+| `forecast_origin` | Month-end origin of the scored forecast. |
+| `target_period` | Target month, 12 months after the origin. Development output stops before `2025-07`. |
+| `ridge_prediction_cents_per_kwh` | Frozen Ridge point forecast, copied unchanged. |
+| `actual_cents_per_kwh` | Realized target price, when the development case has one. |
+| `n_calibration_residuals` | Count of earlier same-state Ridge residuals whose target was available at this origin and whose target month is before `2025-07`. |
+| `k` | `ceil((n + 1) * 4 / 5)`, 1-based. No interpolation. |
+| `half_width_cents_per_kwh` | Order statistic `e(k)` when an interval is emitted. Empty when history is insufficient. |
+| `lower_cents_per_kwh` | Point forecast minus the half-width. |
+| `upper_cents_per_kwh` | Point forecast plus the half-width. |
+| `interval_status` | `interval`, or `insufficient_residual_history` when `n < 24` or `k > n`. |
+| `covered` | Whether the actual lies inside the closed interval. Empty when no interval was emitted. |
+
 ## Quality notes (observed, not edited)
 
 - Missing values: none in the interim Parquet. Duplicates on `state_id` × `period` × `sector_id`: none.

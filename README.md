@@ -6,7 +6,7 @@ InfraLens is a **screening and decision-support tool** for corporate-development
 
 ## Status
 
-Python package plus EIA monthly commercial retail-sales ingest for VA, PA, OH, MD, and NJ. Baselines and the Streamlit demo are not implemented yet.
+Python package plus EIA monthly commercial retail-sales ingest for VA, PA, OH, MD, and NJ. The development-selected price model is Ridge. State-specific nominal-80% absolute-residual intervals are implemented on the development window only. The Streamlit demo is not implemented yet.
 
 Primary geography: PJM state footprint (user-facing comparison initially VA, PA, OH, MD, NJ).  
 Due: 25 October 2026. Fallback project: RateLens (FDIC/FRED NIM forecasting) if public-data feasibility fails.
@@ -37,9 +37,10 @@ python -m infralens.data.eia_ingest
 python -m infralens.evaluation.backtest
 python -m infralens.evaluation.linear
 python -m infralens.evaluation.tree
+python -m infralens.evaluation.intervals
 ```
 
-HTTP client for this sprint is `httpx` (not `requests`). XGBoost, SHAP, MLflow, Streamlit, and Docker are not installed. MLflow stays deferred (`DECISIONS.md`, 2026-09-29). The selected EIA model is Ridge with feature set `eia_commercial_price_v1`.
+HTTP client for this sprint is `httpx` (not `requests`). XGBoost, SHAP, MLflow, Streamlit, and Docker are not installed. MLflow stays deferred (`DECISIONS.md`, 2026-09-29). The selected EIA model is Ridge with feature set `eia_commercial_price_v1`. Its development uncertainty layer is a state-specific empirical absolute-residual interval with nominal 80% coverage. That nominal rate is not a guarantee of future coverage.
 
 Raw EIA JSON is written under `data/raw/eia/` and the matching interim Parquet under `data/interim/`. Both filenames share the same UTC retrieval timestamp. There is no mutable “latest” Parquet alias. API keys are never logged; echoed `api_key` fields are redacted before the raw file is saved.
 

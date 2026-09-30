@@ -1,6 +1,6 @@
 # InfraLens Experiment Log
 
-Human-readable record of completed EIA forecast runs. MLflow is not used. `mlruns/` is gitignored, and current `HEAD` (`4b92a5e`) does not contain the Ridge or tree modules, so a tracking-server commit id would not identify these runs. The numbers below are the development results already written in `EVALUATION.md`.
+Human-readable record of completed EIA forecast runs. MLflow is not used. `mlruns/` is gitignored. The 2026-09-29 selection entry records that commit `4b92a5e` did not contain the Ridge or tree modules; those modules are in `2d4e162`. The numbers below are the development results already written in `EVALUATION.md`.
 
 Final-holdout target months 2025-07 through 2026-06 are not in this log.
 
@@ -48,3 +48,23 @@ Final-holdout target months 2025-07 through 2026-06 are not in this log.
 - Feature set frozen: `eia_commercial_price_v1`
 - Holdout stage: not run
 - Decision: `DECISIONS.md`
+
+## 2026-09-30 - Ridge absolute-residual intervals
+
+- Stage: development
+- Model point forecast: frozen Ridge (`eia_commercial_price_v1`), not refit
+- Interval: state-specific empirical absolute residual, nominal 80% coverage
+- Order statistic: `k = ceil((n + 1) * 4 / 5)`, no interpolation, minimum 24 residuals
+- Ridge point check: MAE 0.7075 ¢/kWh on 1,145 cases (unchanged)
+- Intervals emitted: 955
+- `insufficient_residual_history`: 190
+- Empirical coverage: 80.10% overall
+- Mean width: 2.4046 ¢/kWh
+- Median width: 1.7465 ¢/kWh
+- First interval origin: 2008-08-31 for every state, with 24 residuals
+- Residuals at 2024-06-30: 214 per state
+- Coverage by state: MD 87.96%, NJ 85.86%, OH 77.49%, PA 67.54%, VA 81.68%
+- Overall coverage is inside 75–85%. Maryland, New Jersey, and Pennsylvania are outside that range. The method was not changed.
+- Newest scored target month: 2025-06
+- Entry point: `python -m infralens.evaluation.intervals`
+- Nominal 80% is the order statistic, not a guarantee of future coverage.

@@ -12,9 +12,9 @@
 - [x] Regularized linear EIA baseline (Ridge) on the same development backtest. Holdout still untouched. PJM not joined.
 - [x] Histogram gradient-boosting EIA candidate on the same features and development backtest. Holdout still untouched.
 - [x] Select Ridge on the 1,145-case development comparison and freeze that model class and feature set. Holdout still untouched.
+- [x] State-specific 80% absolute-residual intervals for the frozen Ridge model. Development evaluation only. Holdout still untouched. Method not retuned.
 
 ## Next
-- [ ] State-specific 80% absolute-residual intervals for the frozen Ridge model (method fixed in `EVALUATION.md`; do not retune on development coverage or on the holdout).
 - [ ] Ridge coefficient and prediction-contribution explanations (method fixed in `EVALUATION.md`; not SHAP).
 - [ ] Financial engine + unit tests.
 - [ ] Streamlit MVP.

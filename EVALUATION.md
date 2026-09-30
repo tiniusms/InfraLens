@@ -173,25 +173,51 @@ This is a development result. It does not score the final holdout and does not m
 
 On 2026-09-29 Ridge was selected as the EIA candidate. The tree result above is negative evidence, not an active candidate. The feature set and Ridge penalty procedure are frozen. See `DECISIONS.md`. Nothing in that decision scores target months `2025-07` through `2026-06`.
 
-## Proposed uncertainty method (not implemented)
+## State-specific empirical absolute-residual intervals
 
-Do not fit a second probabilistic model. When intervals are implemented, use expanding-origin, state-specific absolute residual intervals around the frozen Ridge prediction. The horizon is already 12 months, so there is no separate horizon bucket. Do not pool states: development MAE is much larger in Maryland than in Ohio, and a pooled width would hide that. Do not use month-specific buckets: each state would then have about one residual per calendar month per year.
+Implemented in `src/infralens/evaluation/intervals.py`. This is not a second probabilistic model. Each interval is built from the frozen Ridge rolling-origin point forecast. The horizon is already 12 months, so there is no separate horizon bucket. States are not pooled: development MAE is much larger in Maryland than in Ohio, and a pooled width would hide that. Calendar months are not separate buckets: each state would then have about one residual per calendar month per year.
 
-At forecast origin `T`, for state `s`, the calibration set is the Ridge cases for `s` whose forecast origin is strictly earlier than `T`, whose target month is before `2025-07`, and whose target `assumed_available_at <= T`. The case being scored is not in that set. The residual is `actual - ridge_prediction`. The interval uses the absolute residual.
+At forecast origin `T`, for state `s`, the calibration set is the Ridge cases for `s` whose forecast origin is strictly earlier than `T`, whose target month is before `2025-07`, and whose target `assumed_available_at <= T`. Those cases are the out-of-sample predictions already stored by the Ridge backtest, not in-sample fitted values. The case being scored is not in that set. The residual is `actual - ridge_prediction`. The interval uses the absolute residual.
 
-Let `n` be the number of those absolute residuals, sorted ascending `e(1) <= ... <= e(n)`. The intended coverage is **80%** (`4/5`), matching the project success criterion. The order-statistic index is `k = ceil((n + 1) * 4 / 5)`, 1-based, with no interpolation. If `n < 24` or `k > n`, do not emit an interval. Count that skip as `insufficient_residual_history`. The point forecast is still produced. Twenty-four is two years of monthly residuals for one state; it was chosen so the 80% order statistic is defined with a small finite-sample correction, not by looking at development coverage.
+Let `n` be the number of those absolute residuals, sorted ascending `e(1) <= ... <= e(n)`. Nominal coverage is **80%** (`4/5`). The order-statistic index is `k = ceil((n + 1) * 4 / 5)`, 1-based, with no interpolation. If `n < 24` or `k > n`, do not emit an interval. Count that skip as `insufficient_residual_history`. The point forecast is still produced. Twenty-four is two years of monthly residuals for one state; it was chosen so the 80% order statistic is defined with a small finite-sample correction, not by looking at development coverage.
 
-If an interval is emitted, `q = e(k)` and the interval is `[ridge_prediction - q, ridge_prediction + q]` in ¢/kWh. `q` is symmetric around the Ridge prediction. Do not subtract the mean residual. That would change the selected point forecast.
+If an interval is emitted, `q = e(k)` and the interval is `[ridge_prediction - q, ridge_prediction + q]` in ¢/kWh. `q` is symmetric around the Ridge prediction. The mean residual is not subtracted. That would change the selected point forecast.
 
-Development coverage and width, once computed, are diagnostics. They must not change `k`, the minimum of 24, the feature set, or the penalty procedure. Holdout residuals are not an input to this rule. Under m+3, a holdout target is not yet available at any origin that is itself scored inside the holdout window, so a holdout residual cannot enter the calibration set for that window.
+Nominal 80% coverage is the order statistic. It is not a guarantee that a future window, including the final holdout, will cover 80% of actuals.
 
-When intervals exist, evaluate only the cases that received one:
+Development coverage and width are diagnostics. They do not change `k`, the minimum of 24, the feature set, or the penalty procedure. Holdout residuals are not an input to this rule. Under m+3, a holdout target is not yet available at any origin that is itself scored inside the holdout window, so a holdout residual cannot enter the calibration set for that window.
 
-- Empirical coverage: the share of those cases whose actual lies inside the interval, overall and by state.
-- Mean width: the mean of `2q`, in ¢/kWh, overall and by state.
-- Also report how many point forecasts received no interval.
+### Development interval results
 
-The holdout success range for an implemented 80% interval is 75–85% empirical coverage. That comparison happens only in the holdout protocol below, and only if this method has been implemented before that protocol is executed.
+Entry point: `python -m infralens.evaluation.intervals`. Same extract and development Ridge point forecasts as the selection freeze. Ridge MAE on this run remained **0.7075 ¢/kWh on 1,145 cases**. The interval table's point column matched those predictions. The newest scored target month was `2025-06`.
+
+| Quantity | Result |
+| --- | --- |
+| Ridge point forecasts | 1,145 |
+| Intervals emitted | 955 |
+| `insufficient_residual_history` | 190 |
+| Nominal coverage | 80% |
+| Empirical coverage | 80.10% |
+| Mean width | 2.4046 ¢/kWh |
+| Median width | 1.7465 ¢/kWh |
+
+Empirical coverage and mean width by state, on the 955 interval cases (191 per state):
+
+| State | Empirical coverage | Mean width (¢/kWh) |
+| --- | --- | --- |
+| MD | 87.96% | 4.1736 |
+| NJ | 85.86% | 3.4185 |
+| OH | 77.49% | 1.2517 |
+| PA | 67.54% | 1.2953 |
+| VA | 81.68% | 1.8839 |
+
+The first origin that emits an interval is **2008-08-31** in every state, with **24** calibration residuals. At the last development origin, **2024-06-30**, each state has **214** calibration residuals. The 190 point forecasts without an interval are the origins before that first date.
+
+Overall development coverage is inside the 75–85% check. That check is not a tuning target, and the method was not changed after seeing it. Three state slices are outside the same range: Maryland and New Jersey are above 85%, and Pennsylvania is below 75%. Ohio and Virginia are inside it. Maryland's mean width is about 4.17 ¢/kWh; Ohio's is about 1.25 ¢/kWh.
+
+Mean width by origin year starts at 2.76 ¢/kWh in 2008, declines to 2.02 ¢/kWh in 2021, and is 2.18 ¢/kWh in 2024. That description is not a reason to change `k` or the minimum of 24.
+
+The 75–85% comparison on the final holdout has not been run.
 
 ## Proposed Ridge explainability (not implemented)
 
@@ -218,7 +244,7 @@ This protocol is the only authorized way to score target months `2025-07` throug
 5. **Training guard.** A row whose target month is `2025-07` or later is never a training row and never an inner-validation row, including at later origins. The current m+3 lag already keeps those actuals unpublished throughout this origin window. Keep the code guard anyway.
 6. **Benchmark.** Availability-adjusted seasonal naive, same definition as development. Primary comparison is paired: same state, same origin, same target month, on cases Ridge scores. Also print the already recorded full development seasonal-naive MAE (`0.7793` ¢/kWh, 1,350 cases) so it is not used as the holdout denominator.
 7. **Metric.** MAE in ¢/kWh. Improvement = seasonal-naive MAE minus Ridge MAE on the paired holdout cases. Percent = `100 * improvement / seasonal-naive MAE`. The success threshold, set before modeling, is at least **10%** lower holdout MAE than that paired seasonal naive. Report overall MAE and MAE by state for both models, plus attempted, scored, and skip counts.
-8. **Uncertainty.** If the residual method above is implemented before this protocol runs, apply it unchanged at each holdout origin and report empirical coverage and mean width, overall and by state. The coverage check is 75–85% for the intended 80% interval. If the method is not implemented before the protocol runs, skip the coverage check in that run. Do not invent a different interval after seeing holdout prices.
+8. **Uncertainty.** Apply the implemented residual method unchanged at each holdout origin and report empirical coverage and mean width, overall and by state. The coverage check is 75–85% for the nominal 80% interval. Do not change `k`, the minimum of 24, or the Ridge point forecast after seeing holdout prices. Development coverage, including state slices outside 75–85%, is not a reason to change the method.
 9. **Outputs.** One table of paired holdout MAE overall and by state; skip accounting; the penalty selected at each holdout origin and the count of each penalty; feature-set id `eia_commercial_price_v1`; the EIA extract filename; the stage label `final_holdout`. If intervals exist, a second table of coverage, mean width, and the number of cases without an interval.
 10. **After the run.** Holdout results are descriptive. They do not add a model, drop a feature, retune a penalty, or refit state by state. The tree model is not re-scored on the holdout in order to reopen model selection.
 
