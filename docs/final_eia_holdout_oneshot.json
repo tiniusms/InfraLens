@@ -1,0 +1,111 @@
+{
+  "architecture": "arm64",
+  "environment": ".venv-arm64",
+  "executed_on": "2026-10-04",
+  "label": "Result of the one-shot final EIA holdout executed from ee5bcf6d541a1b15822f705e4099320f6f05dc32",
+  "note": "Copied from the artifacts of that single execution. The holdout was not rerun to create this file. The summary object is the generated summary. selected_alpha fields were read from the generated case table.",
+  "python": "3.13.7",
+  "runner_commit": "ee5bcf6d541a1b15822f705e4099320f6f05dc32",
+  "selected_alpha_by_origin": {
+    "2024-07-31": 100.0,
+    "2024-08-31": 10.0,
+    "2024-09-30": 10.0,
+    "2024-10-31": 10.0,
+    "2024-11-30": 10.0,
+    "2024-12-31": 10.0,
+    "2025-01-31": 10.0,
+    "2025-02-28": 10.0,
+    "2025-03-31": 10.0,
+    "2025-04-30": 10.0,
+    "2025-05-31": 10.0,
+    "2025-06-30": 100.0
+  },
+  "selected_alpha_origin_counts": {
+    "10.0": 10,
+    "100.0": 2
+  },
+  "source_cases": "data/processed/final_holdout/final_holdout_cases.parquet",
+  "source_summary": "data/processed/final_holdout/final_holdout_summary.json",
+  "summary": {
+    "attempted": 60,
+    "evaluation_stage": "final_holdout",
+    "extract_id": "eia_retail_sales_monthly_com_20260911T190524Z.parquet",
+    "feature_set_id": "eia_commercial_price_v1",
+    "git_commit": "ee5bcf6d541a1b15822f705e4099320f6f05dc32",
+    "interval_by_state": {
+      "MD": {
+        "coverage": 0.0,
+        "mean_width": 3.469636365639532,
+        "n_intervals": 12
+      },
+      "NJ": {
+        "coverage": 0.0,
+        "mean_width": 2.735160291941693,
+        "n_intervals": 12
+      },
+      "OH": {
+        "coverage": 0.0,
+        "mean_width": 1.3051228084605881,
+        "n_intervals": 12
+      },
+      "PA": {
+        "coverage": 0.0,
+        "mean_width": 1.5587552804864657,
+        "n_intervals": 12
+      },
+      "VA": {
+        "coverage": 0.0,
+        "mean_width": 1.7552387980258122,
+        "n_intervals": 12
+      }
+    },
+    "interval_coverage": 0.0,
+    "mae_by_state": {
+      "MD": {
+        "n_scored": 12,
+        "paired_baseline_mae": 3.608333333333333,
+        "ridge_mae": 3.385474686685759
+      },
+      "NJ": {
+        "n_scored": 12,
+        "paired_baseline_mae": 3.178333333333333,
+        "ridge_mae": 2.726084766988411
+      },
+      "OH": {
+        "n_scored": 12,
+        "paired_baseline_mae": 2.1574999999999998,
+        "ridge_mae": 2.3859318296585297
+      },
+      "PA": {
+        "n_scored": 12,
+        "paired_baseline_mae": 2.3425000000000007,
+        "ridge_mae": 2.344845390825365
+      },
+      "VA": {
+        "n_scored": 12,
+        "paired_baseline_mae": 1.7816666666666672,
+        "ridge_mae": 2.3500265777547478
+      }
+    },
+    "mae_difference": -0.02480598371589604,
+    "mae_improvement_percent": -0.9490875034777213,
+    "mae_improvement_ratio": -0.009490875034777213,
+    "mean_interval_width": 2.1647827089108187,
+    "min_calibration_residuals": 24,
+    "n_insufficient_residual_history": 0,
+    "n_intervals": 60,
+    "nominal_interval_coverage": 0.8,
+    "paired_baseline_mae": 2.6136666666666666,
+    "primary_criterion": "FAIL",
+    "primary_threshold_percent": 10,
+    "primary_threshold_ratio": 0.1,
+    "ridge_mae": 2.6384726503825626,
+    "scored_paired": 60,
+    "skip_counts": {
+      "feature_gap": 0,
+      "insufficient_train": 0,
+      "missing_actual": 0,
+      "no_analog": 0
+    }
+  }
+}

@@ -308,9 +308,9 @@ Numeric contributions at that same origin. The coefficient column is shared acro
 | VA | `sales_latest` | 6082.920380 | 3.506195 | -0.202147 | -0.708767 |
 | VA | `sales_yoy_change` | -33.100950 | -0.275581 | 0.126533 | -0.034870 |
 
-## Final holdout protocol (implemented, not executed)
+## Final holdout protocol (executed once on 2026-10-04)
 
-This protocol is the only authorized way to score target months `2025-07` through `2026-06`. The command is `python -m infralens.evaluation.final_holdout`. It accepts no options. It has not been executed, and this file does not contain a holdout score.
+This protocol is the only authorized way to score target months `2025-07` through `2026-06`. The command is `python -m infralens.evaluation.final_holdout`. It accepts no options. It was executed once on 2026-10-04 from runner commit `ee5bcf6d541a1b15822f705e4099320f6f05dc32` in `.venv-arm64`. Do not execute it again. The result is below. The protocol itself was not changed after the score.
 
 Development uncertainty (`333b754`) and Ridge explanations (`787ce42`) were run and committed before this runner. The 2026-09-29 decision says those methods were not executed *in that decision*. That sentence does not mean they were never run on the development window.
 
@@ -326,6 +326,22 @@ Development uncertainty (`333b754`) and Ridge explanations (`787ce42`) were run 
 8. **Uncertainty.** Apply the implemented residual method unchanged at each holdout origin and report empirical coverage and mean width, overall and by state. The coverage check is 75–85% for the nominal 80% interval. Do not change `k`, the minimum of 24, or the Ridge point forecast after seeing holdout prices. Development coverage, including state slices outside 75–85%, is not a reason to change the method.
 9. **Outputs.** One table of paired holdout MAE overall and by state; skip accounting; the penalty selected at each holdout origin and the count of each penalty; feature-set id `eia_commercial_price_v1`; the EIA extract filename; the stage label `final_holdout`. If intervals exist, a second table of coverage, mean width, and the number of cases without an interval.
 10. **After the run.** Holdout results are descriptive. They do not add a model, drop a feature, retune a penalty, or refit state by state. The tree model is not re-scored on the holdout in order to reopen model selection.
+
+## Final holdout result (one-shot, 2026-10-04)
+
+Primary criterion: **FAIL**. Ridge MAE 2.638473 ¢/kWh was slightly worse than the paired availability-adjusted seasonal-naive MAE 2.613667 ¢/kWh. Difference, baseline minus Ridge, −0.024806 ¢/kWh. Improvement −0.9491%, against a preregistered threshold of at least +10%. Attempted 60, scored 60, and every skip count is 0.
+
+State results are descriptive and do not override the FAIL. Each state has 12 paired cases. Improvement is MD +6.18%, NJ +14.23%, OH −10.59%, PA −0.10%, VA −31.90%.
+
+Selected alpha was 100 at origins 2024-07-31 and 2025-06-30, and 10 at the other 10 origins.
+
+Intervals emitted: 60. Insufficient history: 0. Empirical coverage: 0.0% overall and in all five states. Mean width: 2.1648 ¢/kWh. Development coverage was 80.10% with mean width 2.4046 ¢/kWh. The holdout coverage is severe miscalibration for this period. It does not change the interval method, and nominal 80% coverage is not a guarantee.
+
+Development common-case comparator, already frozen and not the holdout denominator: Ridge 0.7075, paired seasonal naive 0.7997, improvement 11.5%, 1,145 cases.
+
+Extract: `eia_retail_sales_monthly_com_20260911T190524Z.parquet`. Feature set: `eia_commercial_price_v1`. Gitignored artifacts: `data/processed/final_holdout/final_holdout_cases.parquet` and `data/processed/final_holdout/final_holdout_summary.json`. Tracked copy of the generated summary: `docs/final_eia_holdout_oneshot.json`.
+
+Development model selection stays closed. This holdout is not a tuning set. Later examination is post-hoc error analysis. A future predictive model needs a new evaluation design and new untouched data before a confirmatory claim. PJM was not in this model and is not an explanation of these errors.
 
 ## What this evaluation is not
 

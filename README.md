@@ -6,7 +6,7 @@ InfraLens is a **screening and decision-support tool** for corporate-development
 
 ## Status
 
-Python package plus EIA monthly commercial retail-sales ingest for VA, PA, OH, MD, and NJ. The development-selected price model is Ridge. State-specific nominal-80% absolute-residual intervals and origin-specific Ridge explanations were run on the development window and committed before the holdout. The final holdout, target months 2025-07 through 2026-06, has not been scored. The Streamlit demo is not implemented yet.
+Python package plus EIA monthly commercial retail-sales ingest for VA, PA, OH, MD, and NJ. The development-selected price model is Ridge. The one-shot final holdout, target months 2025-07 through 2026-06, was executed on 2026-10-04 from `ee5bcf6` and failed the preregistered 10% paired-MAE test: Ridge MAE 2.638473 ¢/kWh versus paired seasonal-naive MAE 2.613667 ¢/kWh (−0.95%). That result is final. The Streamlit demo is not implemented yet.
 
 Primary geography: PJM state footprint (user-facing comparison initially VA, PA, OH, MD, NJ).  
 Due: 25 October 2026. Fallback project: RateLens (FDIC/FRED NIM forecasting) if public-data feasibility fails.
@@ -43,7 +43,7 @@ python -m infralens.evaluation.explain
 
 HTTP client for this sprint is `httpx` (not `requests`). XGBoost, SHAP, MLflow, Streamlit, and Docker are not installed. MLflow stays deferred (`DECISIONS.md`, 2026-09-29). The selected EIA model is Ridge with feature set `eia_commercial_price_v1`. Its development uncertainty layer is a state-specific empirical absolute-residual interval with nominal 80% coverage. That nominal rate is not a guarantee of future coverage, and 75–85% holdout coverage is a diagnostic, not the primary pass/fail rule. Explanations are the origin-specific linear identity, intercept plus contributions, not SHAP and not causal effects.
 
-The locked final comparison, not yet run, is at least 10% lower Ridge MAE than the availability-adjusted seasonal-naive baseline on the same holdout cases. The only command for that run is `python -m infralens.evaluation.final_holdout`. It accepts no options. Do not run it until the runner commit has been reviewed.
+The locked final comparison was at least 10% lower Ridge MAE than the availability-adjusted seasonal-naive baseline on the same holdout cases. It was run once, on 2026-10-04, and the result is FAIL. Do not run `python -m infralens.evaluation.final_holdout` again. The recorded summary is `docs/final_eia_holdout_oneshot.json`.
 
 Raw EIA JSON is written under `data/raw/eia/` and the matching interim Parquet under `data/interim/`. Both filenames share the same UTC retrieval timestamp. There is no mutable “latest” Parquet alias. API keys are never logged; echoed `api_key` fields are redacted before the raw file is saved.
 

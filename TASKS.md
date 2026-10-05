@@ -14,12 +14,12 @@
 - [x] Select Ridge on the 1,145-case development comparison and freeze that model class and feature set. Holdout still untouched.
 - [x] State-specific 80% absolute-residual intervals for the frozen Ridge model. Development evaluation only. Holdout still untouched. Method not retuned.
 - [x] Exact Ridge coefficient explanations for each development origin. Not SHAP. Holdout still untouched.
-- [x] Implement and test the locked final-holdout runner. The command has not been executed. Holdout actuals have not been scored.
+- [x] Implement and test the locked final-holdout runner.
+- [x] Execute the one-shot final holdout from `ee5bcf6` on 2026-10-04. Primary criterion FAIL. Do not rerun it or retune from it.
 
 ## Next
 - [ ] Financial engine + unit tests.
 - [ ] Streamlit MVP.
-- [ ] Execute `python -m infralens.evaluation.final_holdout` only after the runner commit is reviewed. That command has not been run.
 
 ## Later / Deferred
 - MLflow tracking. Deferred 2026-09-29. `mlruns/` is gitignored, and the development evidence is already in `EVALUATION.md`, `EXPERIMENTS.md`, and `DECISIONS.md`. Do not add MLflow as a new tuning loop.

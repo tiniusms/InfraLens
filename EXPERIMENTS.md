@@ -1,8 +1,6 @@
 # InfraLens Experiment Log
 
-Human-readable record of completed EIA forecast runs. MLflow is not used. `mlruns/` is gitignored. The 2026-09-29 selection entry records that commit `4b92a5e` did not contain the Ridge or tree modules; those modules are in `2d4e162`. The numbers below are the development results already written in `EVALUATION.md`.
-
-Final-holdout target months 2025-07 through 2026-06 are not in this log.
+Human-readable record of completed EIA forecast runs. MLflow is not used. `mlruns/` is gitignored. The 2026-09-29 selection entry records that commit `4b92a5e` did not contain the Ridge or tree modules; those modules are in `2d4e162`. Sections before 2026-10-04 are development results. The one-shot final holdout is the 2026-10-04 entry.
 
 ## 2026-09-14 - Seasonal-naive development backtest
 
@@ -86,8 +84,36 @@ Final-holdout target months 2025-07 through 2026-06 are not in this log.
 
 ## 2026-09-30 - Final holdout runner committed, not executed
 
-- Stage: not run
+- Stage: not run on this date
 - Command: `python -m infralens.evaluation.final_holdout`
-- The command accepts no options and has not been pointed at the EIA extract.
-- No target month from 2025-07 through 2026-06 has been scored.
+- The command accepts no options. On 2026-09-30 it had not been pointed at the EIA extract.
+- The one-shot execution is the 2026-10-04 entry below, not this entry.
 - Development uncertainty and Ridge explanations above were already committed. They are development results, not holdout results.
+
+## 2026-10-04 - One-shot final holdout
+
+- Stage: `final_holdout`
+- Executed once. Not rerun.
+- Runner commit: `ee5bcf6d541a1b15822f705e4099320f6f05dc32`
+- Environment: `.venv-arm64`, Python 3.13.7, arm64
+- Extract: `eia_retail_sales_monthly_com_20260911T190524Z.parquet`
+- Feature set: `eia_commercial_price_v1`
+- Attempted: 60
+- Scored paired: 60
+- Skips: `feature_gap` 0, `insufficient_train` 0, `missing_actual` 0, `no_analog` 0
+- Ridge MAE: 2.638473 ¢/kWh
+- Paired seasonal-naive MAE: 2.613667 ¢/kWh
+- Difference, baseline minus Ridge: −0.024806 ¢/kWh
+- Improvement: −0.9491%
+- Threshold: at least +10%
+- Primary result: FAIL
+- State improvement, 12 paired cases each: MD +6.18%, NJ +14.23%, OH −10.59%, PA −0.10%, VA −31.90%
+- Selected alpha: 100 on 2024-07-31 and 2025-06-30; 10 on the other 10 origins
+- Intervals: 60
+- Insufficient residual history: 0
+- Empirical coverage: 0.0% overall and in MD, NJ, OH, PA, and VA
+- Mean interval width: 2.1648 ¢/kWh
+- Development comparator, not the holdout denominator: Ridge 0.7075, paired seasonal 0.7997, improvement 11.5%, 1,145 cases; interval coverage 80.10%, mean width 2.4046 ¢/kWh
+- Local artifacts, gitignored: `data/processed/final_holdout/final_holdout_cases.parquet`, `data/processed/final_holdout/final_holdout_summary.json`
+- Tracked copy: `docs/final_eia_holdout_oneshot.json`
+- The 0% coverage is a diagnostic. The interval method was not changed. PJM was not in this model.
