@@ -117,3 +117,4 @@ Human-readable record of completed EIA forecast runs. MLflow is not used. `mlrun
 - Local artifacts, gitignored: `data/processed/final_holdout/final_holdout_cases.parquet`, `data/processed/final_holdout/final_holdout_summary.json`
 - Tracked copy: `docs/final_eia_holdout_oneshot.json`
 - The 0% coverage is a diagnostic. The interval method was not changed. PJM was not in this model.
+- Post-hoc description, not a new evaluation: `docs/final_eia_holdout_posthoc_analysis.md`. It does not revise this result.
