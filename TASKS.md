@@ -18,7 +18,8 @@
 - [x] Execute the one-shot final holdout from `ee5bcf6` on 2026-10-04. Primary criterion FAIL. Do not rerun it or retune from it.
 
 ## Next
-- [ ] Build vintage-dated PJM zonal screening dataset from public LTLF files (2024, 2025, 2026; schema in `docs/pjm_screening_schema.md`; not an EIA ML join).
+- [x] PJM screening Slice 1: 2025 and 2026 Table B1 summer peak and 10-year decimal growth, with file-level availability. Not an EIA join.
+- [ ] Later PJM slices: 2024 PDF Table B1, and separate B-9 / B-9b fields. Do not treat adjustment MW as data-center demand.
 - [ ] Financial engine + unit tests.
 - [ ] Streamlit MVP.
 

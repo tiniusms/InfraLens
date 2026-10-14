@@ -69,7 +69,7 @@ Built in `src/infralens/evaluation/features.py` at each forecast origin. They ar
 | `state_id` | State code. | Known geography. Ridge one-hot encodes it inside the training fold. The tree model ordinal-encodes it inside the training fold. |
 | `target_calendar_month` | Calendar month of the 12-month-ahead target. | Known from the origin. It is not an EIA observation. Because the horizon is 12 months, it equals the origin month. Encoded the same way as `state_id`. |
 
-`revenue_million_usd` is excluded because published price is the revenue/sales average. PJM zonal fields are not features in this model.
+`revenue_million_usd` is excluded because published price is the revenue/sales average. PJM zonal fields are not features in this model. Slice 1 screening columns are defined in the next section and are not added to `eia_commercial_price_v1`.
 
 The histogram gradient-boosting candidate uses this same list. Its ordinal encoder is fit on that origin's training rows only. An unseen state or month skips the case. Numeric features are not standardized; the booster fits histogram bin edges on the training fold.
 
@@ -107,6 +107,34 @@ Built in `src/infralens/evaluation/explain.py` from the Ridge pipeline fitted at
 | `contribution` | `transformed_value * coefficient`, in ¢/kWh. |
 | `scaler_mean` / `scaler_scale` | Training-fold scaler parameters for a numeric term. |
 | `reference_state` / `reference_month` | Categories dropped by this origin's encoder. |
+
+## PJM zonal screening, Slice 1
+
+Separate from the EIA price model. Grain is one row per `pjm_zone` × `ltlf_vintage_year` × `forecast_year` from PJM Table B1. Implemented vintages are the 2025 and 2026 Tables workbooks only. There is no join to `state_id`. The display-only zone/state notes live in `docs/pjm_screening_schema.md`.
+
+A row may be used only when `vintage_available_at <= as_of_date`. Missing dates fail closed. The 2026 Tables workbook is available on 2026-02-06 even though its original LAS listing is 2026-01-14. The 2026-01-14 report PDF is a different file and is not this table.
+
+| Name | Source | Definition | Unit | Role |
+| --- | --- | --- | --- | --- |
+| `pjm_zone` | Table B1 column A | Transmission-owner zone code. The 22 verified codes are AE, BGE, DPL, JCPL, METED, PECO, PENLC, PEPCO, PL, PS, RECO, UGI, AEP, APS, ATSI, COMED, DAYTON, DEOK, DLCO, EKPC, OVEC, DOM. RTO, regional, diversity, `FE-EAST`, and `PLGRP` rows are not zones. | Code | Entity key |
+| `ltlf_vintage_year` | InfraLens manifest | 2025 or 2026. The product year, not the publication date. | Year | Entity key |
+| `original_release_date` | LAS listing | 2025-01-24 or 2026-01-14. | Date | Provenance |
+| `revision_date` | Stored Tables file | Null for 2025. 2026-02-06 for the 2026 Tables workbook. | Date or null | Provenance |
+| `vintage_available_at` | File-level rule | Revision date when the stored file is a revision, otherwise the original release. | Date | Point-in-time gate |
+| `forecast_year` | Table B1 year header | Horizon year. `Metered` and `Unrestricted` prior-year columns are excluded. | Year | Entity key |
+| `summer_peak_mw` | Table B1 forecast-year cell | Published summer peak. Stored in MW with no rescale. | MW | Screening measure |
+| `summer_peak_10yr_cagr` | Table B1 `Annual Growth Rate (10 yr)` | Official decimal growth rate on the zone row, repeated for each forecast year of that vintage. AE in 2026 is approximately 0.0007776089. | Decimal per year | Screening measure |
+| `source_url` | InfraLens manifest | Official PJM URL of the Tables workbook. | URL | Lineage |
+| `source_file` | InfraLens manifest | Gitignored local workbook name. | Text | Lineage |
+| `retrieved_at` | Caller | Retrieval timestamp when supplied. | Timestamp or null | Lineage |
+
+Not in Slice 1, and not filled with zero:
+
+- `large_load_adjustment_mw`. Future work must keep Table B-9 (“adjustments above embedded”) and Table B-9b (“total load associated with adjustments”) as separate fields. Those sheets differ.
+- `has_data_center_adjustment`. Adjustment MW is not a measurement of data-center demand.
+- 2024 Table B1. The revised PDF is the structured source for that vintage. The 2024 Data workbook is monthly peak and energy.
+
+ATSI overlaps both Ohio and Pennsylvania (Penn Power). That overlap is a display qualification. It is not a key and not a weight on `summer_peak_mw`.
 
 ## Quality notes (observed, not edited)
 
