@@ -5,7 +5,7 @@
 - [x] Create GitHub repository and copy the onboarding pack into root.
 - [x] Obtain/configure EIA API key.
 - [x] Pull monthly commercial electricity price/sales history for PJM states.
-- [ ] Inventory archived/current PJM load-forecast files and document publication dates.
+- [x] Inventory archived/current PJM load-forecast files and document publication dates.
 - [x] Build first data dictionary with source, unit, frequency, availability date, and leakage risk.
 - [x] Availability-adjusted seasonal-naive baseline (not unavailable t-12).
 - [x] Run first publication-lag-constrained current-vintage backtest.
@@ -18,6 +18,7 @@
 - [x] Execute the one-shot final holdout from `ee5bcf6` on 2026-10-04. Primary criterion FAIL. Do not rerun it or retune from it.
 
 ## Next
+- [ ] Build vintage-dated PJM zonal screening dataset from public LTLF files (2024, 2025, 2026; schema in `docs/pjm_screening_schema.md`; not an EIA ML join).
 - [ ] Financial engine + unit tests.
 - [ ] Streamlit MVP.
 

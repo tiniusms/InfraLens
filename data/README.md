@@ -1,6 +1,6 @@
 # Data layout
 
-- `raw/` — immutable downloads and original extracts. Do not overwrite.
+- `raw/` — immutable downloads and original extracts. Do not overwrite. EIA JSON under `raw/eia/`; future public PJM LTLF PDF/XLS under `raw/pjm/` (gitignored).
 - `interim/` — cleaned or joined tables still in progress.
 - `processed/` — analysis-ready Parquet (and similar) artifacts.
 
