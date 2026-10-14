@@ -27,6 +27,13 @@ from infralens.screening.pjm_sources import (
     TABLE_B1_SOURCES,
     PjmTablesSource,
 )
+from infralens.screening.pjm_view import (
+    PjmViewError,
+    ScreeningProvenance,
+    ZoneYearScreening,
+    compare_zone_year_vintages,
+    screen_zone_year,
+)
 
 __all__ = [
     "ABOVE_EMBEDDED_MW",
@@ -36,13 +43,18 @@ __all__ = [
     "PjmAdjustmentError",
     "PjmB1Error",
     "PjmTablesSource",
+    "PjmViewError",
+    "ScreeningProvenance",
+    "ZoneYearScreening",
     "TABLE_B1_SOURCES",
     "TOTAL_ASSOCIATED_MW",
+    "compare_zone_year_vintages",
     "filter_adjustment_rows",
     "filter_b1_rows",
     "load_slice1_tables",
     "load_slice2_adjustments",
     "parse_table_b1",
+    "screen_zone_year",
     "validate_adjustment_rows",
     "validate_b1_rows",
     "write_b1_parquet",

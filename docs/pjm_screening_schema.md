@@ -92,6 +92,18 @@ Layout differences the parser accepts explicitly:
 - 2025 B-9b’s title states MW and the measure, and omits the “(2025 - 2045)” span. Years still come from the header row.
 - 2026 B-9 carries the 2/6/2026 embedded-calculation note. 2026 B-9b does not.
 
+## Screening view
+
+`screen_zone_year` reads already parsed B1 and adjustment rows. It does not open a workbook and it does not create a 2024 vintage. For one `pjm_zone`, `forecast_year`, and `as_of_date`, it returns the newest vintage that was public on that date and that publishes all three observations for that zone and year. Summer peak, the 10-year decimal, B-9, and B-9b in that result come from that one vintage.
+
+A newer public vintage that has only some of those three rows, a duplicate key, or disagreeing publication dates raises `PjmViewError`. The view does not fill the gap with an older vintage. An older vintage's missing row does not block the newer result. `compare_zone_year_vintages` still raises when any public vintage it would list is incomplete. A year outside a vintage's horizon is different: the 2026 workbook does not publish forecast year 2025, so that query stays on the 2025 vintage when 2025 was already public.
+
+If no covering vintage was public, the result has `available=False`, null measures, and `unavailable_reason`. That is an unpublished file, not a malformed cell. Dates before 2025-01-24 are in that group for the current extracts, because the 2024 PDF is not parsed.
+
+`compare_zone_year_vintages` returns each public complete vintage separately, newest first. It does not average them. The same incomplete-vintage error applies.
+
+The result has no `state_id`, no risk score, and no data-center flag. The zone/state table below stays display-only.
+
 ## Recorded ambiguities
 
 - Forecast-year headers are the year alone. The word `Unrestricted` labels the prior-year history column. Slice 1 stores the forecast-year summer peak in MW and does not copy that history column into `forecast_year`.
@@ -148,4 +160,4 @@ Zones in the 2026 report that do **not** belong on VA/PA/OH/MD/NJ screening page
 - Derived Slice 1 table: Parquet under `data/processed/pjm/`, gitignored with the rest of `data/processed/`. Do not commit raw workbooks or generated binaries.
 - Record `source_url`, `source_file`, and `retrieved_at` on every row.
 
-Implemented fields are in `DATA_DICTIONARY.md`. Deferred B-9 fields are described there and are not EIA features.
+Implemented fields and the point-in-time view are in `DATA_DICTIONARY.md`. They are not EIA features. The 2024 PDF tables are still unparsed.

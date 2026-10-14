@@ -147,6 +147,14 @@ Horizons read from the year headers: 2025–2045 and 2026–2046, 21 years each,
 
 `pjm_zone`, vintage, `original_release_date`, `revision_date`, `vintage_available_at`, `source_url`, `source_file`, and `retrieved_at` mean the same thing as in Slice 1. `retrieved_at` is required on the Slice 2 production load and is not invented.
 
+## PJM screening view
+
+`screen_zone_year` selects one vintage for one zone and forecast year. The vintage must have `vintage_available_at <= as_of_date` and one B1 row, one B-9 row, and one B-9b row for that exact zone and year. Newer public vintages win. Fields are not mixed across vintages. `compare_zone_year_vintages` lists those complete public vintages separately.
+
+`available=False` means no covering vintage was public. Measures are null in that case only. The newest public vintage with a missing series, a duplicate key, or disagreeing dates raises rather than falling back. An older incomplete vintage does not block that newer result. The comparison function raises if any public vintage it would list is incomplete. Published zeros and negatives pass through. There is no risk score and no data-center label.
+
+`source_urls` and `retrieved_at` are ordered Table B1, B-9, B-9b. The 2024 vintage is not implemented, so an as-of date before 2025-01-24 has no row when the caller passes only the 2025 and 2026 extracts. AEP forecast year 2026 on 2025-06-30 uses the 2025 vintage: summer peak 25,788 MW, 10-year decimal 0.0547154909, B-9 3,621 MW, B-9b 3,936 MW. The same query on 2026-02-06 uses the 2026 vintage: 24,635 MW, 0.0525293343, 1,913 MW, and 2,699 MW.
+
 ATSI overlaps both Ohio and Pennsylvania (Penn Power). That overlap is a display qualification. It is not a key and not a weight on `summer_peak_mw`.
 
 ## Quality notes (observed, not edited)
