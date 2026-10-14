@@ -19,7 +19,8 @@
 
 ## Next
 - [x] PJM screening Slice 1: 2025 and 2026 Table B1 summer peak and 10-year decimal growth, with file-level availability. Not an EIA join.
-- [ ] Later PJM slices: 2024 PDF Table B1, and separate B-9 / B-9b fields. Do not treat adjustment MW as data-center demand.
+- [x] PJM screening Slice 2: 2025 and 2026 Table B-9 and B-9b as separate MW series. Not data-center demand and not an EIA join.
+- [ ] Later PJM slice: 2024 PDF Table B1 and B-9. Do not treat adjustment MW as data-center demand.
 - [ ] Financial engine + unit tests.
 - [ ] Streamlit MVP.
 

@@ -128,11 +128,24 @@ A row may be used only when `vintage_available_at <= as_of_date`. Missing dates 
 | `source_file` | InfraLens manifest | Gitignored local workbook name. | Text | Lineage |
 | `retrieved_at` | Caller | Retrieval timestamp when supplied. | Timestamp or null | Lineage |
 
-Not in Slice 1, and not filled with zero:
+Not in Slice 1, and not filled with zero: 2024 Table B1. The revised PDF is the structured source for that vintage. The 2024 Data workbook is monthly peak and energy. Slice 2, below, replaces the unused single column `large_load_adjustment_mw` with two measures. `has_data_center_adjustment` is still not written.
 
-- `large_load_adjustment_mw`. Future work must keep Table B-9 (“adjustments above embedded”) and Table B-9b (“total load associated with adjustments”) as separate fields. Those sheets differ.
-- `has_data_center_adjustment`. Adjustment MW is not a measurement of data-center demand.
-- 2024 Table B1. The revised PDF is the structured source for that vintage. The 2024 Data workbook is monthly peak and energy.
+## PJM zonal screening, Slice 2
+
+Same Tables workbooks and the same file-level dates as Slice 1. Grain is one row per `pjm_zone` × `ltlf_vintage_year` × `forecast_year` × `adjustment_measure`. There is no join to `state_id` and no risk score.
+
+B-9, `above_embedded_mw`, is “Adjustments Above Embedded to Summer Peak Load (MW)”. B-9b, `total_associated_mw`, is “Total Load Associated with Adjustments to Summer Peak Load (MW)”. Both are MW. Published zeros stay zero. Published negatives stay negative. A blank cell is an error. The two measures are not added. Neither is data-center demand: these sheets do not say that, and the 2024 PDF note that mentions data centers also lists other adjustments in the same kind of MW column.
+
+Horizons read from the year headers: 2025–2045 and 2026–2046, 21 years each, 22 zones, 1,848 rows. The `PJM RTO` row on each sheet is not emitted. AEP forecast year 2026 is 1,913 MW on B-9 and 2,699 MW on B-9b.
+
+| Name | Source | Definition | Unit | Role |
+| --- | --- | --- | --- | --- |
+| `adjustment_measure` | Sheet identity | `above_embedded_mw` or `total_associated_mw`. | Code | Entity key |
+| `adjustment_mw` | B-9 or B-9b year cell | Published adjustment for that measure. | MW | Screening measure |
+| `source_table` | Sheet identity | `B-9` or `B-9b`. | Text | Lineage |
+| `forecast_year` | Year header on that sheet | Horizon year. Not taken from Table B1. | Year | Entity key |
+
+`pjm_zone`, vintage, `original_release_date`, `revision_date`, `vintage_available_at`, `source_url`, `source_file`, and `retrieved_at` mean the same thing as in Slice 1. `retrieved_at` is required on the Slice 2 production load and is not invented.
 
 ATSI overlaps both Ohio and Pennsylvania (Penn Power). That overlap is a display qualification. It is not a key and not a weight on `summer_peak_mw`.
 

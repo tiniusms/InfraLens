@@ -2,7 +2,7 @@
 
 Research snapshot: **2026-09-28**. Official PJM pages and report headers only.
 
-Slice 1 code, added 2026-10-14, parses Table B1 from the 2025 and 2026 Tables workbooks only. It does not parse the 2024 PDF, the Data workbooks, Table B-9, or Table B-9b.
+Slice 1 code, added 2026-10-14, parses Table B1 from the 2025 and 2026 Tables workbooks. Slice 2, added the same day, parses Table B-9 and Table B-9b from those workbooks as separate MW series. Neither slice parses the 2024 PDF or the Data workbooks.
 
 This note corrects the earlier inventory on **original release vs later revision**. Forecast year in a filename is not an availability date.
 

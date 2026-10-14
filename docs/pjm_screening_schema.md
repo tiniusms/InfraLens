@@ -1,6 +1,6 @@
 # PJM zonal screening schema
 
-**Status:** Slice 1 is implemented for 2025 and 2026 Table B1 only (`src/infralens/screening/`). Not an ML feature spec. No risk score and no investment ranking.
+**Status:** Slice 1 parses 2025 and 2026 Table B1. Slice 2 parses Table B-9 and Table B-9b from those same workbooks as separate MW series (`src/infralens/screening/`). Not an ML feature spec. No risk score and no investment ranking.
 
 Version 1 keeps EIA as the **state-level monthly price-forecasting layer**. This schema is a **separate zonal screening layer**. Do not join these columns onto the EIA model matrix. Do not aggregate zones to VA/PA/OH/MD/NJ for modeling.
 
@@ -18,7 +18,7 @@ Dashboard and any later point-in-time view may show a vintage only when `vintage
 
 ## Grain
 
-One row per **`pjm_zone` × `ltlf_vintage_year` × `forecast_year`**.
+Slice 1 grain is one row per **`pjm_zone` × `ltlf_vintage_year` × `forecast_year`**. Slice 2 adds **`adjustment_measure`**, so B-9 and B-9b stay on separate rows for the same zone and year.
 
 Vintage-level attributes (`summer_peak_10yr_cagr`, dates, source) repeat across forecast years of that vintage. That is intentional for a single small table. `has_data_center_adjustment` is not populated in Slice 1.
 
@@ -40,14 +40,17 @@ TO **zone** grain (AE, AEP, APS, …), not sub-zone (APP, PED, …), unless a vi
 | `source_file` | text | Slice 1. Local gitignored filename. |
 | `retrieved_at` | timestamp or null | Slice 1. UTC retrieval time when the caller supplies one. Null on a fixture that was not downloaded. |
 
-Deferred columns, not written by Slice 1:
+Slice 2 does not write a single `large_load_adjustment_mw` column. It writes one row per measure:
 
-| Column | Why it stays empty |
-| --- | --- |
-| `large_load_adjustment_mw` | Table B-9 and Table B-9b are different series. They must be separate future fields. Slice 1 does not choose one or fill the other with zero. |
-| `has_data_center_adjustment` | Adjustment MW is not data-center demand. The 2024 B-9 note mixes data-center growth with peak shaving, port electrification, a chip-processing plant, and behind-the-meter generation moving to demand response. The 2025 and 2026 Tables workbooks do not label B-9 as data-center load. |
+| Column | Type | Definition |
+| --- | --- | --- |
+| `adjustment_measure` | text | `above_embedded_mw` for Table B-9, or `total_associated_mw` for Table B-9b. |
+| `adjustment_mw` | float | Published value for that measure and forecast year, in MW. Zeros and negatives stay as published. |
+| `source_table` | text | `B-9` or `B-9b`. |
 
-Optional later: winter peak, net energy, LDA/RTO rows, the separate B-9 and B-9b fields, 2024 PDF Table B1, mid-year vintage flag. The 2026-07-24 mid-year workbook stays out.
+`has_data_center_adjustment` stays unwritten. The 2025 and 2026 sheets do not label either measure as data-center load. The 2024 PDF note, which is not parsed here, already mixes data-center growth with other adjustments inside one MW column.
+
+Optional later: winter peak, net energy, the PJM RTO total on these sheets, 2024 PDF tables, mid-year vintage flag. The 2026-07-24 mid-year workbook stays out.
 
 ## What this is not
 
@@ -68,14 +71,37 @@ Code parses the **2025 and 2026 Tables workbooks, Table B1 only**. The 2024 row 
 
 The 2026 in-file note dated 2026-02-06 is on Table B-9 (“updated 2/6/2026 to correct for an error calculating embedded”). Slice 1 still dates the whole stored Tables workbook as available on 2026-02-06. It does not assign Table B1 an earlier date, and it does not claim that B1 itself changed on that day. A 2026-01-14 view can see the report PDF’s original listing and still cannot use this Tables file.
 
-2024 has no Tables workbook on the LAS page. Its Data workbook is monthly `PEAK_MW` and `ENERGY_GWH`, not Table B1. Parsing 2024 summer peak still requires the revised PDF. That parser is not in Slice 1.
+2024 has no Tables workbook on the LAS page. Its Data workbook is monthly `PEAK_MW` and `ENERGY_GWH`, not Table B1 or B-9. Parsing 2024 still requires the revised PDF. That parser is not implemented.
+
+## Slice 2 adjustment tables
+
+`load_slice2_adjustments` reads `Table B9` and `Table B9b` from the same 2025 and 2026 Tables workbooks as Slice 1. File-level dates do not change: 2025 is available 2025-01-24, and the 2026 workbook is available 2026-02-06. The B-9 note that says the sheet was updated on 2026-02-06 restates that file-level revision. It is not a second availability date.
+
+Verified from those workbooks, not copied from Table B1:
+
+| Sheet | Measure | 2025 horizon | 2026 horizon | Zone rows emitted |
+| --- | --- | --- | --- | --- |
+| B-9 | `above_embedded_mw` | 2025–2045 (21 years) | 2026–2046 (21 years) | The same 22 Table B1 codes, same order |
+| B-9b | `total_associated_mw` | 2025–2045 (21 years) | 2026–2046 (21 years) | The same 22 codes, same order |
+
+That is 462 rows per table per vintage, and **1,848** rows for both measures and both vintages. AEP in forecast year **2026** is 1,913 MW on B-9 and 2,699 MW on B-9b. Those are different numbers. AE is a published 0 in that same year on both sheets. EKPC is −10 MW on both 2026 sheets for 2026, and −6 MW on the 2025 sheets for 2025.
+
+Layout differences the parser accepts explicitly:
+
+- 2025 B-9 has a `Column1` placeholder row under the year header. 2025 B-9b does not.
+- 2025 B-9b’s title states MW and the measure, and omits the “(2025 - 2045)” span. Years still come from the header row.
+- 2026 B-9 carries the 2/6/2026 embedded-calculation note. 2026 B-9b does not.
 
 ## Recorded ambiguities
 
 - Forecast-year headers are the year alone. The word `Unrestricted` labels the prior-year history column. Slice 1 stores the forecast-year summer peak in MW and does not copy that history column into `forecast_year`.
 - The 10-year rate is the published decimal. AE in the 2026 workbook is about `0.0007776089`, which is 0.0778 percent per year. Slice 1 does not multiply by 100.
 - Published zeros and published negative rates stay as published. A blank cell is an error.
-- B-9 and B-9b differ (105 cells in each of the 2025 and 2026 workbooks, including AEP). They are not interchangeable names for one adjustment.
+- B-9 and B-9b differ in 84 transmission-owner zone-year cells in each of the 2025 and 2026 workbooks. AEP forecast year 2026 is 1,913 MW above embedded and 2,699 MW total associated load. They are not added together.
+- Each adjustment sheet also publishes a `PJM RTO` row. Slice 2 does not emit it and does not treat it as a zone or as a sum calculated by InfraLens.
+- 2025 B-9’s `Column1` row is an Excel placeholder, not a zone. 2025 B-9b has no such row.
+- Some published MW values fall between 1900 and 2200. The year header is the row without a zone label, not every integer in that range.
+- Neither 2025 nor 2026 adjustment sheet identifies data-center demand. A negative EKPC value is a published adjustment, not a data-center measurement.
 - Data-workbook sheet names such as `DAY`, `JCPL_FE_EAST`, and `PN_FE_EAST` are not Table B1 zone codes. Table B1 uses `DAYTON`, `JCPL`, and `PENLC`.
 
 ## Display-only zone/state reference (not an ML join)

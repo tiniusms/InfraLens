@@ -1,18 +1,16 @@
-"""Official PJM sources for screening Slice 1.
+"""Official PJM Tables workbooks for screening Slices 1 and 2.
 
-Slice 1 reads Table B1 from the 2025 and 2026 Long-Term Load Forecast Tables
-workbooks only. Dates below are file-level facts for those workbooks. They are
-not inferred from a PDF cover or from a single sheet inside the file.
+Slice 1 reads Table B1. Slice 2 reads Table B-9 and Table B-9b from the same
+2025 and 2026 workbooks. Dates below are file-level facts for those workbooks.
+They are not inferred from a PDF cover or from a note on one sheet.
 
-Deferred, and intentionally absent from the row schema:
+B-9 and B-9b stay separate measures. They differ by zone and year. Neither
+measure is data-center demand: the 2024 B-9 note mixes data-center growth
+with other adjustments, and the 2025 and 2026 workbooks do not label either
+sheet as data-center load.
 
-- 2024 remains a revised PDF. Its Data workbook is a monthly peak and energy
-  file, not Table B1. This slice does not parse it.
-- Table B-9 and Table B-9b are different series. In the 2025 and 2026
-  workbooks they differ by zone and year. A later slice must keep them as
-  separate fields. Adjustment megawatts are not data-center demand: the 2024
-  B-9 note mixes data-center growth with other adjustments, and the 2025 and
-  2026 workbooks do not label B-9 as data-center load.
+2024 remains a revised PDF. Its Data workbook is a monthly peak and energy
+file, not Table B1 or B-9. These slices do not parse it.
 """
 
 from __future__ import annotations
