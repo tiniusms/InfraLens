@@ -2,6 +2,12 @@
 
 Use one entry for every material change in scope, data, model, evaluation, architecture, or financial assumptions.
 
+## 2026-10-15 - Demo charts show closed history, not a forward forecast
+**Decision:** The Streamlit page adds an observed EIA commercial-price chart and a closed-holdout chart under the existing FAIL banner. History is the frozen commercial extract through 2026-06 for VA, PA, OH, MD, and NJ. The holdout chart plots actual, Ridge, and seasonal naive by target month 2025-07 through 2026-06. Stored residual intervals are drawn from the case file only, with empirical coverage stated, including 0% when that is the result. Missing parquet files leave those charts unavailable and leave the banner and cost form in place. A model-derived cost scenario still sets `model_derived_eia_price` and shows the unchanged holdout warning.
+**Evidence:** The local extract has 1,530 commercial rows, five states, 2001-01 through 2026-06. The case file has 60 scored rows, 12 target months per state, and `interval_covered` false on every row. Origins remain 2024-07-31 through 2025-06-30 and are not the chart axis.
+**What this decision does not do:** It does not rerun the holdout, refit Ridge, add a production forecast, join PJM to EIA, or commit the parquet files.
+**Revisit trigger:** The PJM screening tab.
+
 ## 2026-10-15 - Demo foundation is a historical prototype
 **Decision:** The first Streamlit page is a historical evaluation prototype. It shows the committed holdout FAIL summary and the annual electricity-cost form. A price taken from the frozen holdout case file is labeled as a closed Ridge prediction and sets `model_derived_eia_price=True`. A typed price does not. If the local EIA and PJM files are absent, the page stays in portable mode: the calculator and the committed summary still run, and the page explains where those files belong. It does not rerun the holdout, chart prices, or open PJM screening yet.
 **Evidence:** The committed summary records primary criterion FAIL, Ridge MAE 2.638473 ¢/kWh, paired seasonal-naive MAE 2.613667 ¢/kWh, and interval coverage 0%. The checked 50 MW cost example remains 455,520,000 kWh and $54,662,400 at 12 cents/kWh.

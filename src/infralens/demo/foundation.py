@@ -33,7 +33,8 @@ TYPED_PRICE_LABEL = "Typed hypothetical energy price. Not a model forecast."
 PORTABLE_MODE = "portable_summary"
 LOCAL_FULL_DATA_MODE = "local_full_data"
 
-_FROZEN_EXTRACT_ID = "eia_retail_sales_monthly_com_20260911T190524Z.parquet"
+FROZEN_EXTRACT_ID = "eia_retail_sales_monthly_com_20260911T190524Z.parquet"
+_FROZEN_EXTRACT_ID = FROZEN_EXTRACT_ID
 _OBTAIN_SOURCES = (
     "Full local mode expects files that are not in git. "
     f"Price history: data/interim/{_FROZEN_EXTRACT_ID}. "
