@@ -157,6 +157,24 @@ Horizons read from the year headers: 2025–2045 and 2026–2046, 21 years each,
 
 ATSI overlaps both Ohio and Pennsylvania (Penn Power). That overlap is a display qualification. It is not a key and not a weight on `summer_peak_mw`.
 
+## Annual electricity cost
+
+Caller-supplied scenario, not an EIA feature and not a PJM measure. `annual_electricity_cost` and `compare_price_scenarios` in `src/infralens/finance/` apply one hypothetical IT load to one or more energy prices. The formula and the 50 MW worked example are in `docs/finance.md`.
+
+| Name | Definition | Unit |
+| --- | --- | --- |
+| `it_capacity_mw` | Hypothetical IT capacity. Zero is allowed. | MW |
+| `pue` | Power usage effectiveness. Must be at least 1 and finite. | Ratio |
+| `utilization` | Average IT utilization, from 0 through 1. | Share |
+| `operating_hours_per_year` | Positive scenario hours. Default 8760, a non-leap annualization. A custom value is not a calendar-year lookup. | Hours |
+| `facility_average_demand_mw` | `it_capacity_mw × utilization × pue`. | MW |
+| `annual_consumption_kwh` | `facility_average_demand_mw × 1000 × operating_hours_per_year`. | kWh |
+| `price_cents_per_kwh` | Caller-supplied energy price. Zero is allowed. | cents/kWh |
+| `annual_electricity_cost_usd` | `annual_consumption_kwh × price_cents_per_kwh / 100`. | USD |
+| `cost_difference_vs_baseline_usd` | This scenario's annual cost minus the named baseline. | USD |
+
+No demand charge, tariff, hedge, tax, PPA, network charge, or PJM capacity price is included. A model-derived EIA price carries the frozen 60-case holdout FAIL warning and is not an investment forecast. The future demo must set `model_derived_eia_price` automatically for every model-derived EIA price. Discounted multi-year cost is not calculated.
+
 ## Quality notes (observed, not edited)
 
 - Missing values: none in the interim Parquet. Duplicates on `state_id` × `period` × `sector_id`: none.

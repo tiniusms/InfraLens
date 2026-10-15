@@ -10,3 +10,4 @@ This folder is for supporting notes that are not yet promoted to root:
 - `pjm_ltlf_inventory.md` — PJM Long-Term Load Forecast source inventory (original vs revision dates)
 - `pjm_screening_schema.md` — zonal screening table; Slice 1 is 2025/2026 Table B1, Slice 2 is separate B-9 and B-9b series, plus the point-in-time zone-year view, with a display-only zone/state map
 - `final_eia_holdout_external_evidence.md` — post-hoc external-factor memo; not a model input and not a rescore
+- `finance.md` — annual electricity-cost identities; not a tariff, DCF, or PJM capacity adder
