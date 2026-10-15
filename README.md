@@ -42,6 +42,8 @@ python -m infralens.evaluation.intervals
 python -m infralens.evaluation.explain
 ```
 
+The three-tab defense walkthrough, expected example values, and portable-mode limits are in [`docs/demo_walkthrough.md`](docs/demo_walkthrough.md).
+
 HTTP client for this sprint is `httpx` (not `requests`). XGBoost, SHAP, MLflow, and Docker are not installed. Streamlit is the optional `demo` extra used by `src/infralens/demo/app.py`. MLflow stays deferred (`DECISIONS.md`, 2026-09-29). The selected EIA model is Ridge with feature set `eia_commercial_price_v1`. Its development uncertainty layer is a state-specific empirical absolute-residual interval with nominal 80% coverage. That nominal rate is not a guarantee of future coverage, and 75–85% holdout coverage is a diagnostic, not the primary pass/fail rule. Explanations are the origin-specific linear identity, intercept plus contributions, not SHAP and not causal effects.
 
 The locked final comparison was at least 10% lower Ridge MAE than the availability-adjusted seasonal-naive baseline on the same holdout cases. It was run once, on 2026-10-04, and the result is FAIL. Do not run `python -m infralens.evaluation.final_holdout` again. The recorded summary is `docs/final_eia_holdout_oneshot.json`.

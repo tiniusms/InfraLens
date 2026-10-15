@@ -23,7 +23,7 @@
 - [x] PJM screening view: newest public vintage with complete B1, B-9, and B-9b for one zone and forecast year. No state join and no risk score.
 - [ ] Later PJM slice: 2024 PDF Table B1 and B-9. Do not treat adjustment MW as data-center demand.
 - [x] Financial engine: deterministic annual electricity cost from IT capacity, PUE, utilization, hours, and cents/kWh. Not a DCF, tariff engine, or risk score.
-- [ ] Streamlit MVP.
+- [x] Streamlit MVP.
   - [x] Foundation page: committed FAIL banner, portable vs local file check, and the annual cost form. A holdout Ridge price sets `model_derived_eia_price` automatically.
   - [x] Historical price chart and closed-holdout comparison chart. The FAIL banner stays above the tabs. A missing parquet file leaves that chart unavailable.
   - [x] PJM screening tab: one public vintage for a zone and forecast year, with B1, B-9, and B-9b kept separate. No state join and no risk score.
