@@ -24,6 +24,8 @@
 - [ ] Later PJM slice: 2024 PDF Table B1 and B-9. Do not treat adjustment MW as data-center demand.
 - [x] Financial engine: deterministic annual electricity cost from IT capacity, PUE, utilization, hours, and cents/kWh. Not a DCF, tariff engine, or risk score.
 - [ ] Streamlit MVP.
+  - [x] Foundation page: committed FAIL banner, portable vs local file check, and the annual cost form. A holdout Ridge price sets `model_derived_eia_price` automatically.
+  - [ ] Historical price chart, holdout comparison chart, and PJM screening tab.
 
 ## Later / Deferred
 - MLflow tracking. Deferred 2026-09-29. `mlruns/` is gitignored, and the development evidence is already in `EVALUATION.md`, `EXPERIMENTS.md`, and `DECISIONS.md`. Do not add MLflow as a new tuning loop.

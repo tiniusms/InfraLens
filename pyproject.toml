@@ -24,6 +24,9 @@ dev = [
     "pytest>=8.0",
     "jupyter>=1.0",
 ]
+demo = [
+    "streamlit>=1.41",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

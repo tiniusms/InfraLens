@@ -2,6 +2,12 @@
 
 Use one entry for every material change in scope, data, model, evaluation, architecture, or financial assumptions.
 
+## 2026-10-15 - Demo foundation is a historical prototype
+**Decision:** The first Streamlit page is a historical evaluation prototype. It shows the committed holdout FAIL summary and the annual electricity-cost form. A price taken from the frozen holdout case file is labeled as a closed Ridge prediction and sets `model_derived_eia_price=True`. A typed price does not. If the local EIA and PJM files are absent, the page stays in portable mode: the calculator and the committed summary still run, and the page explains where those files belong. It does not rerun the holdout, chart prices, or open PJM screening yet.
+**Evidence:** The committed summary records primary criterion FAIL, Ridge MAE 2.638473 ¢/kWh, paired seasonal-naive MAE 2.613667 ¢/kWh, and interval coverage 0%. The checked 50 MW cost example remains 455,520,000 kWh and $54,662,400 at 12 cents/kWh.
+**What this decision does not do:** It does not create a forward-looking production forecast, change Ridge, or redistribute the gitignored EIA and PJM files.
+**Revisit trigger:** The next demo slice adds the price chart, the holdout comparison chart, and the PJM screening tab.
+
 ## 2026-10-14 - Annual electricity cost is an energy-charge identity
 **Decision:** The first financial translation is a tested annual energy-cost identity: facility demand MW = IT capacity MW × utilization × PUE; kWh = demand MW × 1000 × hours; USD = kWh × cents/kWh / 100. PUE must be at least 1. Hours default to 8760, and any other positive hour count is a scenario assumption rather than a calendar lookup. Several named prices can be compared against one baseline on the same load. Model-derived EIA prices must carry the frozen 60-case holdout FAIL warning, and a future demo must set that flag automatically. The calculator does not add PJM capacity prices, demand charges, or a discount rate, and it does not read the screening layer or refit Ridge.
 **Evidence:** 50 MW IT, PUE 1.30, utilization 0.80, 8760 hours, and 12 cents/kWh produce 52 MW average demand, 455,520,000 kWh, and $54,662,400. The holdout primary criterion remains FAIL, with both Ridge and the seasonal-naive baseline underpredicting and empirical interval coverage at 0%.
