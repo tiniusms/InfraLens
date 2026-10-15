@@ -28,6 +28,15 @@ from infralens.demo.eia_views import (
     load_price_history,
     price_plot_frame,
 )
+from infralens.demo.pjm_screen import (
+    GEOGRAPHIC_WARNING,
+    LARGE_LOAD_WARNING,
+    MISSING_WORKBOOKS,
+    ScreeningDisplay,
+    load_screening_tables,
+    present_screening,
+    screen_cached_zone,
+)
 from infralens.demo.foundation import (
     FROZEN_EXTRACT_ID,
     HOLDOUT_PRICE_LABEL,
@@ -53,6 +62,9 @@ __all__ = [
     "CLOSED_PREDICTION_ROLE",
     "DEMO_STATES",
     "FROZEN_EXTRACT_ID",
+    "GEOGRAPHIC_WARNING",
+    "LARGE_LOAD_WARNING",
+    "MISSING_WORKBOOKS",
     "HISTORY_LIMITATIONS",
     "HOLDOUT_PRICE_LABEL",
     "HYPOTHETICAL_ROLE",
@@ -73,6 +85,7 @@ __all__ = [
     "HoldoutRidgeQuote",
     "LocalArtifactPaths",
     "PriceHistory",
+    "ScreeningDisplay",
     "PriceSource",
     "assess_artifacts",
     "chart_series_catalog",
@@ -86,5 +99,8 @@ __all__ = [
     "load_holdout_comparison",
     "load_holdout_quotes",
     "load_price_history",
+    "load_screening_tables",
+    "present_screening",
     "price_plot_frame",
+    "screen_cached_zone",
 ]

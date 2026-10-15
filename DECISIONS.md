@@ -2,6 +2,12 @@
 
 Use one entry for every material change in scope, data, model, evaluation, architecture, or financial assumptions.
 
+## 2026-10-15 - Demo PJM tab screens one public vintage
+**Decision:** The Streamlit page adds a PJM infrastructure-screening tab beside the EIA charts and the cost form. It calls the existing workbook loaders and `screen_zone_year`. The as-of date selects one vintage. B-9 and B-9b stay separate, including published zeros and negatives. A date before 2025-01-24 is unpublished, not zero. `retrieved_at` is the later local file-creation time of the two cached workbooks, and the page says that is not a PJM publication date. If that creation time cannot be read, the tab does not invent one. The FAIL banner stays above the tabs.
+**Evidence:** AEP forecast year 2026 is vintage 2025 on 2025-06-30 and on 2026-01-14 (summer peak 25,788 MW, B-9 3,621 MW, B-9b 3,936 MW). On 2026-02-06 it is vintage 2026 (24,635 MW, 1,913 MW, 2,699 MW).
+**What this decision does not do:** It does not change the PJM parsers, rerun the EIA holdout, join zones to states, add the adjustment measures, or create a risk score.
+**Revisit trigger:** A later slice parses the 2024 PDF into the same view.
+
 ## 2026-10-15 - Demo charts show closed history, not a forward forecast
 **Decision:** The Streamlit page adds an observed EIA commercial-price chart and a closed-holdout chart under the existing FAIL banner. History is the frozen commercial extract through 2026-06 for VA, PA, OH, MD, and NJ. The holdout chart plots actual, Ridge, and seasonal naive by target month 2025-07 through 2026-06. Stored residual intervals are drawn from the case file only, with empirical coverage stated, including 0% when that is the result. Missing parquet files leave those charts unavailable and leave the banner and cost form in place. A model-derived cost scenario still sets `model_derived_eia_price` and shows the unchanged holdout warning.
 **Evidence:** The local extract has 1,530 commercial rows, five states, 2001-01 through 2026-06. The case file has 60 scored rows, 12 target months per state, and `interval_covered` false on every row. Origins remain 2024-07-31 through 2025-06-30 and are not the chart axis.

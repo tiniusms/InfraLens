@@ -1,14 +1,17 @@
-"""Streamlit demo: closed EIA charts and the electricity-cost form.
+"""Streamlit demo: closed EIA charts, PJM screening, and the cost form.
 
 Run from the repository root:
 
     streamlit run src/infralens/demo/app.py
 
-The FAIL banner stays above the tabs. PJM screening is not on this page.
+The FAIL banner stays above the tabs. Set ``INFRALENS_PORTABLE_PREVIEW=1``
+to hide the local cache paths without moving those files.
 """
 
 from __future__ import annotations
 
+import os
+from datetime import date, datetime
 from pathlib import Path
 
 import altair as alt
@@ -39,6 +42,7 @@ from infralens.demo.foundation import (
     PROTOTYPE_CAPTION,
     TYPED_PRICE_LABEL,
     DemoDataError,
+    LocalArtifactPaths,
     PriceSource,
     assess_artifacts,
     cost_scenarios,
@@ -46,7 +50,28 @@ from infralens.demo.foundation import (
     load_holdout_banner,
     load_holdout_quotes,
 )
+from infralens.demo.pjm_screen import (
+    CAGR_PERCENT_LABEL,
+    DEFAULT_AS_OF,
+    DEFAULT_FORECAST_YEAR,
+    DEFAULT_ZONE,
+    FORECAST_YEARS,
+    GEOGRAPHIC_WARNING,
+    LARGE_LOAD_WARNING,
+    MALFORMED_VINTAGE_NOTE,
+    MISSING_WORKBOOKS,
+    UNPUBLISHED_NOTE,
+    load_screening_tables,
+    present_screening,
+    screen_cached_zone,
+    workbook_identity,
+    workbook_paths,
+)
 from infralens.finance.annual_cost import EIA_MODEL_PRICE_WARNING, FinanceInputError
+from infralens.screening.pjm_adjustments import PjmAdjustmentError
+from infralens.screening.pjm_b1 import PjmB1Error
+from infralens.screening.pjm_sources import EXPECTED_B1_ZONE_CODES
+from infralens.screening.pjm_view import PjmViewError
 
 _ACTUAL_COLOR = "#1f4e79"
 _RIDGE_COLOR = "#b85c38"
@@ -58,7 +83,7 @@ def main() -> None:
     st.set_page_config(page_title="InfraLens", layout="wide")
     st.title("InfraLens")
     st.caption(PROTOTYPE_CAPTION)
-    paths = default_artifact_paths()
+    paths = _visible_paths(default_artifact_paths())
     try:
         banner = load_holdout_banner(paths.committed_summary)
     except DemoDataError as exc:
@@ -67,12 +92,18 @@ def main() -> None:
     _render_banner(banner)
     assessment = assess_artifacts(paths)
     _render_mode(assessment)
-    history_tab, finance_tab = st.tabs(
-        ["EIA history and closed holdout", "Financial scenarios"]
+    history_tab, finance_tab, pjm_tab = st.tabs(
+        [
+            "EIA history and closed holdout",
+            "Financial scenarios",
+            "PJM infrastructure screening",
+        ]
     )
     with history_tab:
         _render_history(paths.price_history)
         _render_holdout_chart(paths.holdout_cases, banner)
+    with pjm_tab:
+        _render_pjm(paths.pjm_2025_tables.parent)
     with finance_tab:
         quotes: tuple = ()
         if assessment.holdout_cases_present:
@@ -105,8 +136,7 @@ def _render_mode(assessment) -> None:
     if assessment.mode == LOCAL_FULL_DATA_MODE:
         st.info(
             "Local full-data files are on this machine. "
-            "The history and closed-holdout charts read those files. "
-            "PJM screening is not on this page."
+            "The history chart, closed-holdout chart, and PJM screening tab read those files."
         )
         return
     st.warning("Portable demonstration mode. " + assessment.obtain_sources)
@@ -125,7 +155,7 @@ def _render_history(path: Path) -> None:
         return
     state = st.selectbox("History state", history.states, key="history-state")
     frame = price_plot_frame(history, state)
-    st.altair_chart(_history_chart(frame), use_container_width=True)
+    st.altair_chart(_history_chart(frame), width="stretch")
     retrieved = history.retrieved_at or "not recorded on the file"
     source = history.source_name or "EIA"
     units = history.price_units or "cents/kWh"
@@ -156,7 +186,7 @@ def _render_holdout_chart(path: Path, banner) -> None:
     state = st.selectbox("Holdout state", _states(comparison), key="holdout-state")
     plot = holdout_plot_frame(comparison, state)
     lines = holdout_line_frame(plot)
-    st.altair_chart(_holdout_chart(plot, lines, comparison), use_container_width=True)
+    st.altair_chart(_holdout_chart(plot, lines, comparison), width="stretch")
     if comparison.interval_warning:
         st.warning(comparison.interval_warning)
     provenance = holdout_provenance(comparison, banner)
@@ -340,6 +370,96 @@ def _scenario_inputs(title: str, key: str, default_price: float, quotes):
         key=f"{key}-price",
     )
     return (name, source, price)
+
+
+def _render_pjm(raw_dir: Path) -> None:
+    st.subheader("PJM infrastructure screening")
+    st.warning(GEOGRAPHIC_WARNING)
+    st.warning(LARGE_LOAD_WARNING)
+    paths = workbook_paths(raw_dir)
+    if any(not path.is_file() for path in paths):
+        st.warning(MISSING_WORKBOOKS)
+        return
+    try:
+        identity = tuple(workbook_identity(path) for path in paths)
+        b1_rows, adjustment_rows, retrieval = _cached_pjm_tables(str(raw_dir), identity)
+    except (DemoDataError, PjmB1Error, PjmAdjustmentError) as exc:
+        st.error(str(exc))
+        return
+    zone = st.selectbox(
+        "PJM zone",
+        EXPECTED_B1_ZONE_CODES,
+        index=EXPECTED_B1_ZONE_CODES.index(DEFAULT_ZONE),
+    )
+    year = st.selectbox(
+        "Forecast year",
+        FORECAST_YEARS,
+        index=FORECAST_YEARS.index(DEFAULT_FORECAST_YEAR),
+    )
+    as_of = st.date_input("As-of date", value=DEFAULT_AS_OF)
+    as_of_date = as_of.date() if isinstance(as_of, datetime) else as_of
+    if not isinstance(as_of_date, date):
+        st.error("As-of date is not a calendar date.")
+        return
+    try:
+        result = screen_cached_zone(b1_rows, adjustment_rows, zone, int(year), as_of_date)
+    except PjmViewError as exc:
+        st.error(str(exc))
+        st.caption(MALFORMED_VINTAGE_NOTE)
+        return
+    shown = present_screening(result, retrieval.note)
+    st.caption(shown.retrieval_note)
+    if not shown.available:
+        st.warning(shown.unavailable_reason or UNPUBLISHED_NOTE)
+        st.caption(UNPUBLISHED_NOTE)
+        return
+    st.caption(
+        f"Vintage {shown.ltlf_vintage_year}. "
+        f"Original release {shown.original_release_date}. "
+        f"Revision {shown.revision_date or 'none'}. "
+        f"Available {shown.vintage_available_at}."
+    )
+    left, right = st.columns(2)
+    left.metric("Summer peak", f"{shown.summer_peak_mw} MW")
+    right.metric("10-year CAGR decimal", f"{shown.summer_peak_10yr_cagr}")
+    st.caption(f"{CAGR_PERCENT_LABEL}: {shown.cagr_percent_per_year}")
+    st.metric("B-9 above embedded", f"{shown.above_embedded_mw} MW")
+    st.metric("B-9b total associated", f"{shown.total_associated_mw} MW")
+    st.caption("B-9 and B-9b are shown separately. They are not added.")
+    for table, filename, url, retrieved in zip(
+        shown.source_tables,
+        shown.source_files,
+        shown.source_urls,
+        shown.retrieved_at,
+        strict=True,
+    ):
+        st.markdown(f"{table}: `{filename}` — [{url}]({url}) — retrieved {retrieved}")
+
+
+def _visible_paths(paths: LocalArtifactPaths) -> LocalArtifactPaths:
+    """Hide gitignored caches when previewing portable mode. The summary stays."""
+
+    if os.environ.get("INFRALENS_PORTABLE_PREVIEW") != "1":
+        return paths
+    absent = paths.committed_summary.parent / "portable-preview-absent"
+    return LocalArtifactPaths(
+        price_history=absent / "price.parquet",
+        holdout_cases=absent / "cases.parquet",
+        pjm_2025_tables=absent / "2025-load-report-tables.xlsx",
+        pjm_2026_tables=absent / "2026-load-report-tables.xlsx",
+        committed_summary=paths.committed_summary,
+    )
+
+
+@st.cache_data(show_spinner=False)
+def _cached_pjm_tables(raw_dir_text: str, identity: tuple[tuple[str, int, int, int | None], ...]):
+    """Cache parsed workbooks. The identity tuple drops the cache when a file changes."""
+
+    raw_dir = Path(raw_dir_text)
+    current = tuple(workbook_identity(path) for path in workbook_paths(raw_dir))
+    if current != identity:
+        raise DemoDataError("Cached PJM workbooks no longer match the files on disk.")
+    return load_screening_tables(raw_dir)
 
 
 if __name__ == "__main__":
