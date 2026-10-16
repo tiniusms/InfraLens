@@ -26,6 +26,9 @@ data/raw/*
 !data/raw/eia/
 data/raw/eia/*
 !data/raw/eia/.gitkeep
+!data/raw/pjm/
+data/raw/pjm/*
+!data/raw/pjm/.gitkeep
 data/interim/*
 !data/interim/.gitkeep
 data/processed/*

@@ -51,7 +51,7 @@ Example:
 ## Windows
 
 - **Development:** expanding month-end origins `2002-01-31` through `2024-06-30` (targets `2003-01` through `2025-06`).
-- **Final holdout (written, not executed):** target months `2025-07` through `2026-06`. Model selection is closed. These months are still not scored.
+- **Final holdout (executed once on 2026-10-04):** target months `2025-07` through `2026-06`. Model selection is closed. The one-shot result is recorded in “Final holdout protocol (executed once on 2026-10-04)” and “Final holdout result (one-shot, 2026-10-04).”
 
 ## Development backtest results
 
@@ -217,7 +217,7 @@ Overall development coverage is inside the 75–85% check. That check is not a t
 
 Mean width by origin year starts at 2.76 ¢/kWh in 2008, declines to 2.02 ¢/kWh in 2021, and is 2.18 ¢/kWh in 2024. That description is not a reason to change `k` or the minimum of 24.
 
-The 75–85% comparison on the final holdout has not been run.
+The frozen holdout recorded 0.0% empirical interval coverage against the nominal 80% interval. The 75–85% range is a diagnostic, not the primary pass/fail gate. The interval procedure was not retuned from that holdout. The recorded result is in “Final holdout result (one-shot, 2026-10-04).”
 
 ## Ridge coefficient explanations
 

@@ -69,7 +69,7 @@ Built in `src/infralens/evaluation/features.py` at each forecast origin. They ar
 | `state_id` | State code. | Known geography. Ridge one-hot encodes it inside the training fold. The tree model ordinal-encodes it inside the training fold. |
 | `target_calendar_month` | Calendar month of the 12-month-ahead target. | Known from the origin. It is not an EIA observation. Because the horizon is 12 months, it equals the origin month. Encoded the same way as `state_id`. |
 
-`revenue_million_usd` is excluded because published price is the revenue/sales average. PJM zonal fields are not features in this model.
+`revenue_million_usd` is excluded because published price is the revenue/sales average. PJM zonal fields are not features in this model. Slice 1 screening columns are defined in the next section and are not added to `eia_commercial_price_v1`.
 
 The histogram gradient-boosting candidate uses this same list. Its ordinal encoder is fit on that origin's training rows only. An unseen state or month skips the case. Numeric features are not standardized; the booster fits histogram bin edges on the training fold.
 
@@ -107,6 +107,73 @@ Built in `src/infralens/evaluation/explain.py` from the Ridge pipeline fitted at
 | `contribution` | `transformed_value * coefficient`, in ¢/kWh. |
 | `scaler_mean` / `scaler_scale` | Training-fold scaler parameters for a numeric term. |
 | `reference_state` / `reference_month` | Categories dropped by this origin's encoder. |
+
+## PJM zonal screening, Slice 1
+
+Separate from the EIA price model. Grain is one row per `pjm_zone` × `ltlf_vintage_year` × `forecast_year` from PJM Table B1. Implemented vintages are the 2025 and 2026 Tables workbooks only. There is no join to `state_id`. The display-only zone/state notes live in `docs/pjm_screening_schema.md`.
+
+A row may be used only when `vintage_available_at <= as_of_date`. Missing dates fail closed. The 2026 Tables workbook is available on 2026-02-06 even though its original LAS listing is 2026-01-14. The 2026-01-14 report PDF is a different file and is not this table.
+
+| Name | Source | Definition | Unit | Role |
+| --- | --- | --- | --- | --- |
+| `pjm_zone` | Table B1 column A | Transmission-owner zone code. The 22 verified codes are AE, BGE, DPL, JCPL, METED, PECO, PENLC, PEPCO, PL, PS, RECO, UGI, AEP, APS, ATSI, COMED, DAYTON, DEOK, DLCO, EKPC, OVEC, DOM. RTO, regional, diversity, `FE-EAST`, and `PLGRP` rows are not zones. | Code | Entity key |
+| `ltlf_vintage_year` | InfraLens manifest | 2025 or 2026. The product year, not the publication date. | Year | Entity key |
+| `original_release_date` | LAS listing | 2025-01-24 or 2026-01-14. | Date | Provenance |
+| `revision_date` | Stored Tables file | Null for 2025. 2026-02-06 for the 2026 Tables workbook. | Date or null | Provenance |
+| `vintage_available_at` | File-level rule | Revision date when the stored file is a revision, otherwise the original release. | Date | Point-in-time gate |
+| `forecast_year` | Table B1 year header | Horizon year. `Metered` and `Unrestricted` prior-year columns are excluded. | Year | Entity key |
+| `summer_peak_mw` | Table B1 forecast-year cell | Published summer peak. Stored in MW with no rescale. | MW | Screening measure |
+| `summer_peak_10yr_cagr` | Table B1 `Annual Growth Rate (10 yr)` | Official decimal growth rate on the zone row, repeated for each forecast year of that vintage. AE in 2026 is approximately 0.0007776089. | Decimal per year | Screening measure |
+| `source_url` | InfraLens manifest | Official PJM URL of the Tables workbook. | URL | Lineage |
+| `source_file` | InfraLens manifest | Gitignored local workbook name. | Text | Lineage |
+| `retrieved_at` | Caller | Retrieval timestamp when supplied. | Timestamp or null | Lineage |
+
+Not in Slice 1, and not filled with zero: 2024 Table B1. The revised PDF is the structured source for that vintage. The 2024 Data workbook is monthly peak and energy. Slice 2, below, replaces the unused single column `large_load_adjustment_mw` with two measures. `has_data_center_adjustment` is still not written.
+
+## PJM zonal screening, Slice 2
+
+Same Tables workbooks and the same file-level dates as Slice 1. Grain is one row per `pjm_zone` × `ltlf_vintage_year` × `forecast_year` × `adjustment_measure`. There is no join to `state_id` and no risk score.
+
+B-9, `above_embedded_mw`, is “Adjustments Above Embedded to Summer Peak Load (MW)”. B-9b, `total_associated_mw`, is “Total Load Associated with Adjustments to Summer Peak Load (MW)”. Both are MW. Published zeros stay zero. Published negatives stay negative. A blank cell is an error. The two measures are not added. Neither is data-center demand: these sheets do not say that, and the 2024 PDF note that mentions data centers also lists other adjustments in the same kind of MW column.
+
+Horizons read from the year headers: 2025–2045 and 2026–2046, 21 years each, 22 zones, 1,848 rows. The `PJM RTO` row on each sheet is not emitted. AEP forecast year 2026 is 1,913 MW on B-9 and 2,699 MW on B-9b.
+
+| Name | Source | Definition | Unit | Role |
+| --- | --- | --- | --- | --- |
+| `adjustment_measure` | Sheet identity | `above_embedded_mw` or `total_associated_mw`. | Code | Entity key |
+| `adjustment_mw` | B-9 or B-9b year cell | Published adjustment for that measure. | MW | Screening measure |
+| `source_table` | Sheet identity | `B-9` or `B-9b`. | Text | Lineage |
+| `forecast_year` | Year header on that sheet | Horizon year. Not taken from Table B1. | Year | Entity key |
+
+`pjm_zone`, vintage, `original_release_date`, `revision_date`, `vintage_available_at`, `source_url`, `source_file`, and `retrieved_at` mean the same thing as in Slice 1. `retrieved_at` is required on the Slice 2 production load and is not invented.
+
+## PJM screening view
+
+`screen_zone_year` selects one vintage for one zone and forecast year. The vintage must have `vintage_available_at <= as_of_date` and one B1 row, one B-9 row, and one B-9b row for that exact zone and year. Newer public vintages win. Fields are not mixed across vintages. `compare_zone_year_vintages` lists those complete public vintages separately.
+
+`available=False` means no covering vintage was public. Measures are null in that case only. The newest public vintage with a missing series, a duplicate key, or disagreeing dates raises rather than falling back. An older incomplete vintage does not block that newer result. The comparison function raises if any public vintage it would list is incomplete. Published zeros and negatives pass through. There is no risk score and no data-center label.
+
+`source_urls` and `retrieved_at` are ordered Table B1, B-9, B-9b. The 2024 vintage is not implemented, so an as-of date before 2025-01-24 has no row when the caller passes only the 2025 and 2026 extracts. AEP forecast year 2026 on 2025-06-30 uses the 2025 vintage: summer peak 25,788 MW, 10-year decimal 0.0547154909, B-9 3,621 MW, B-9b 3,936 MW. The same query on 2026-02-06 uses the 2026 vintage: 24,635 MW, 0.0525293343, 1,913 MW, and 2,699 MW.
+
+ATSI overlaps both Ohio and Pennsylvania (Penn Power). That overlap is a display qualification. It is not a key and not a weight on `summer_peak_mw`.
+
+## Annual electricity cost
+
+Caller-supplied scenario, not an EIA feature and not a PJM measure. `annual_electricity_cost` and `compare_price_scenarios` in `src/infralens/finance/` apply one hypothetical IT load to one or more energy prices. The formula and the 50 MW worked example are in `docs/finance.md`.
+
+| Name | Definition | Unit |
+| --- | --- | --- |
+| `it_capacity_mw` | Hypothetical IT capacity. Zero is allowed. | MW |
+| `pue` | Power usage effectiveness. Must be at least 1 and finite. | Ratio |
+| `utilization` | Average IT utilization, from 0 through 1. | Share |
+| `operating_hours_per_year` | Positive scenario hours. Default 8760, a non-leap annualization. A custom value is not a calendar-year lookup. | Hours |
+| `facility_average_demand_mw` | `it_capacity_mw × utilization × pue`. | MW |
+| `annual_consumption_kwh` | `facility_average_demand_mw × 1000 × operating_hours_per_year`. | kWh |
+| `price_cents_per_kwh` | Caller-supplied energy price. Zero is allowed. | cents/kWh |
+| `annual_electricity_cost_usd` | `annual_consumption_kwh × price_cents_per_kwh / 100`. | USD |
+| `cost_difference_vs_baseline_usd` | This scenario's annual cost minus the named baseline. | USD |
+
+No demand charge, tariff, hedge, tax, PPA, network charge, or PJM capacity price is included. A model-derived EIA price carries the frozen 60-case holdout FAIL warning and is not an investment forecast. The implemented demo sets `model_derived_eia_price` for a selected frozen holdout Ridge price. A typed hypothetical price does not. Discounted multi-year cost is not calculated.
 
 ## Quality notes (observed, not edited)
 
