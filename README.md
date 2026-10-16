@@ -21,6 +21,7 @@ Due: 25 October 2026. Fallback project: RateLens (FDIC/FRED NIM forecasting) if 
 | `AGENTS.md` | Rules for every AI coding/review tool |
 | `DECISIONS.md` | Dated scope/data/model/evaluation changes |
 | `TASKS.md` | Current sprint backlog |
+| `ARCHITECTURE.md` | Implemented components and data flow |
 | `CLAUDE.md` / `.cursor/rules/` | Thin adapters that point back to the files above |
 
 GitHub is authoritative. Chat histories are not.
