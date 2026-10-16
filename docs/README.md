@@ -5,6 +5,7 @@ Capstone source-of-truth files live at the repository root (`PROJECT_CONTEXT.md`
 This folder is for supporting notes that are not yet promoted to root:
 
 - [`../ARCHITECTURE.md`](../ARCHITECTURE.md) — implemented components and data flow
+- [`../RISK_REGISTER.md`](../RISK_REGISTER.md) — measured failures and remaining limitations
 - Evaluation and experiment notes
 - Literature / APA working notes
 - `pjm_ltlf_inventory.md` — PJM Long-Term Load Forecast source inventory (original vs revision dates)
