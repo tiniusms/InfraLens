@@ -30,7 +30,7 @@ Zero IT capacity and zero utilization are valid and produce zero consumption. A 
 
 The price is an energy charge in cents per kWh. The result does not add demand charges, a tariff, a hedge, a tax, a PPA structure, a network charge, or a contract term. It does not add a PJM wholesale capacity price on top of an EIA retail price.
 
-A number is not treated as a Ridge prediction unless the caller sets `model_derived_eia_price=True`. The future demo must set that flag automatically for every model-derived EIA price. The flag attaches this warning and does not change the arithmetic:
+A number is not treated as a Ridge prediction unless the caller sets `model_derived_eia_price=True`. The implemented demo sets that flag for a selected frozen holdout Ridge price. A typed hypothetical price does not. The flag attaches this warning and does not change the arithmetic:
 
 > This price is a model-derived EIA scenario, not a validated investment forecast. The frozen 60-case holdout primary criterion is FAIL. Both Ridge and the seasonal-naive baseline systematically underpredicted. Empirical interval coverage was 0%.
 

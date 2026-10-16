@@ -173,7 +173,7 @@ Caller-supplied scenario, not an EIA feature and not a PJM measure. `annual_elec
 | `annual_electricity_cost_usd` | `annual_consumption_kwh × price_cents_per_kwh / 100`. | USD |
 | `cost_difference_vs_baseline_usd` | This scenario's annual cost minus the named baseline. | USD |
 
-No demand charge, tariff, hedge, tax, PPA, network charge, or PJM capacity price is included. A model-derived EIA price carries the frozen 60-case holdout FAIL warning and is not an investment forecast. The future demo must set `model_derived_eia_price` automatically for every model-derived EIA price. Discounted multi-year cost is not calculated.
+No demand charge, tariff, hedge, tax, PPA, network charge, or PJM capacity price is included. A model-derived EIA price carries the frozen 60-case holdout FAIL warning and is not an investment forecast. The implemented demo sets `model_derived_eia_price` for a selected frozen holdout Ridge price. A typed hypothetical price does not. Discounted multi-year cost is not calculated.
 
 ## Quality notes (observed, not edited)
 
