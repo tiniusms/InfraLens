@@ -29,6 +29,10 @@ demo = [
     "streamlit>=1.41",
     "altair>=5",
 ]
+api = [
+    "fastapi>=0.115",
+    "uvicorn>=0.32",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
