@@ -23,6 +23,7 @@ Due: 25 October 2026. Fallback project: RateLens (FDIC/FRED NIM forecasting) if 
 | `TASKS.md` | Current sprint backlog |
 | `ARCHITECTURE.md` | Implemented components and data flow |
 | `RISK_REGISTER.md` | Measured failures and remaining limitations |
+| `LITERATURE.md` | Verified source and methodology evidence index, not the complete APA portfolio |
 | `CLAUDE.md` / `.cursor/rules/` | Thin adapters that point back to the files above |
 
 GitHub is authoritative. Chat histories are not.
