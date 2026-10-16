@@ -2,11 +2,13 @@
 
 Explainable AI for power-cost forecasting and capital-risk screening of data-center locations.
 
-InfraLens is a **screening and decision-support tool** for corporate-development, infrastructure-investment, or project-finance analysts. It forecasts 12-month-ahead commercial electricity prices (public-data proxy) for PJM states, translates those forecasts into electricity-cost scenarios, and surfaces transparent infrastructure-risk indicators. It is not an interconnection study, tariff engine, or final investment recommendation.
+InfraLens is a **screening and decision-support tool** for corporate-development, infrastructure-investment, or project-finance analysts. It compares a frozen 12-month-ahead commercial electricity-price model (a public EIA proxy) for PJM states with an availability-adjusted seasonal-naive baseline, turns a stated price into an annual electricity-cost scenario, and shows PJM zonal planning indicators. It is not an interconnection study, a tariff engine, or a final investment recommendation.
 
 ## Status
 
-Python package plus EIA monthly commercial retail-sales ingest for VA, PA, OH, MD, and NJ. The development-selected price model is Ridge. The one-shot final holdout, target months 2025-07 through 2026-06, was executed on 2026-10-04 from `ee5bcf6` and failed the preregistered 10% paired-MAE test: Ridge MAE 2.638473 ¢/kWh versus paired seasonal-naive MAE 2.613667 ¢/kWh (−0.95%). That result is final. A Streamlit page shows that result, the observed commercial-price history, the closed holdout comparison, the annual cost form, and a PJM zone-year screening tab. The price charts are historical evaluation, not a forward forecast. PJM zones are not joined to EIA states.
+Python package plus EIA monthly commercial retail-sales history for VA, PA, OH, MD, and NJ. Ridge, feature set `eia_commercial_price_v1`, was the development-selected candidate. The one-shot final holdout, target months 2025-07 through 2026-06, was executed once on 2026-10-04 from `ee5bcf6` and failed the preregistered 10% paired-MAE test: Ridge MAE 2.638473 ¢/kWh versus paired seasonal-naive MAE 2.613667 ¢/kWh (−0.95%). Empirical interval coverage was 0%. That result is final. The recorded summary is `docs/final_eia_holdout_oneshot.json`. Do not run `python -m infralens.evaluation.final_holdout` again. Ridge is a closed historical evaluation, not a validated production forecast and not an investment recommendation.
+
+A Streamlit page shows that FAIL result, the observed commercial-price history, the closed holdout comparison, the annual cost form, and a PJM zone-year screening tab. The price charts are historical evaluation. PJM zones are not joined to EIA states.
 
 Primary geography: PJM state footprint (user-facing comparison initially VA, PA, OH, MD, NJ).  
 Due: 25 October 2026. Fallback project: RateLens (FDIC/FRED NIM forecasting) if public-data feasibility fails.
@@ -23,33 +25,46 @@ Due: 25 October 2026. Fallback project: RateLens (FDIC/FRED NIM forecasting) if 
 
 GitHub is authoritative. Chat histories are not.
 
-## Setup
+## Portable demo
 
-Python 3.11+ is required.
+Python 3.11+ is required. An EIA API key is not required to run the existing demo.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -e ".[dev,demo]"
-cp .env.example .env        # then add an EIA API key: https://www.eia.gov/opendata/register.php
-pytest
-streamlit run src/infralens/demo/app.py
-python -m infralens.data.eia_ingest
-python -m infralens.evaluation.backtest
-python -m infralens.evaluation.linear
-python -m infralens.evaluation.tree
-python -m infralens.evaluation.intervals
-python -m infralens.evaluation.explain
+python -m pip install -e ".[dev,demo]"
+python -m streamlit run src/infralens/demo/app.py
 ```
+
+Startup reads the committed holdout summary and any local cache files that are already present. It does not call the EIA API, train a model, or score the holdout.
 
 The three-tab defense walkthrough, expected example values, and portable-mode limits are in [`docs/demo_walkthrough.md`](docs/demo_walkthrough.md).
 
-HTTP client for this sprint is `httpx` (not `requests`). XGBoost, SHAP, MLflow, and Docker are not installed. Streamlit is the optional `demo` extra used by `src/infralens/demo/app.py`. MLflow stays deferred (`DECISIONS.md`, 2026-09-29). The selected EIA model is Ridge with feature set `eia_commercial_price_v1`. Its development uncertainty layer is a state-specific empirical absolute-residual interval with nominal 80% coverage. That nominal rate is not a guarantee of future coverage, and 75–85% holdout coverage is a diagnostic, not the primary pass/fail rule. Explanations are the origin-specific linear identity, intercept plus contributions, not SHAP and not causal effects.
+### Portable mode and local full-data mode
 
-The locked final comparison was at least 10% lower Ridge MAE than the availability-adjusted seasonal-naive baseline on the same holdout cases. It was run once, on 2026-10-04, and the result is FAIL. Do not run `python -m infralens.evaluation.final_holdout` again. The recorded summary is `docs/final_eia_holdout_oneshot.json`.
+Portable mode uses the committed summary `docs/final_eia_holdout_oneshot.json`. The FAIL banner and the typed annual-cost form still run. If any of the four gitignored caches below is missing, each missing chart or workbook stays unavailable.
+
+Local full-data mode, with charts and PJM screening, needs all four files:
+
+- `data/interim/eia_retail_sales_monthly_com_20260911T190524Z.parquet`
+- `data/processed/final_holdout/final_holdout_cases.parquet`
+- `data/raw/pjm/2025-load-report-tables.xlsx`
+- `data/raw/pjm/2026-load-report-tables.xlsx`
+
+Leave a missing file unavailable. Do not download a substitute and do not regenerate the final holdout. To preview portable mode while those files remain on disk, start with `INFRALENS_PORTABLE_PREVIEW=1`. That switch only hides the cache paths for the process.
+
+## EIA ingestion and development
+
+A new EIA extract is separate from the demo. Copy `.env.example` to `.env` and set `EIA_API_KEY` (register at https://www.eia.gov/opendata/register.php). Then run `python -m infralens.data.eia_ingest`. Only that ingestion path reads `EIA_API_KEY`.
 
 Raw EIA JSON is written under `data/raw/eia/` and the matching interim Parquet under `data/interim/`. Both filenames share the same UTC retrieval timestamp. There is no mutable “latest” Parquet alias. API keys are never logged; echoed `api_key` fields are redacted before the raw file is saved.
 
-## Intended stack
+Development checks already produced the frozen comparison: `python -m infralens.evaluation.backtest`, `linear`, `tree`, `intervals`, and `explain`. They are documented in `EVALUATION.md`. Demo startup leaves them unrun. Run tests with `pytest`. The final-holdout command above stays closed.
 
-Python → EIA/PJM/FERC/EPA → Parquet → DuckDB → scikit-learn + XGBoost/HistGradientBoosting → MLflow → SHAP → Streamlit → Docker.
+## Implemented stack
+
+Python 3.11+ installable package in `src/infralens`. Core dependencies are pandas, NumPy, PyArrow, DuckDB, httpx, scikit-learn, Matplotlib, and python-dotenv. The `dev` extra adds pytest and Jupyter. The `demo` extra adds Streamlit and Altair. The HTTP client is httpx.
+
+The repository includes EIA commercial retail-sales ingest, publication-lag-constrained development backtests (seasonal naive, Ridge, and a histogram-gradient-boosting comparison that lost on development MAE), state-specific absolute-residual intervals, origin-specific Ridge coefficient explanations, a deterministic annual electricity-cost identity, PJM 2025/2026 table screening parsed from workbook ZIP/XML, and the Streamlit historical-evaluation page.
+
+Deferred or outside this package: XGBoost, SHAP, MLflow, Docker, and openpyxl. MLflow remains deferred (`DECISIONS.md`, 2026-09-29). Explanations are the fitted linear identity: the intercept plus each feature's contribution. Nominal 80% interval coverage is the method's stated rate. The 75–85% holdout-coverage band was a diagnostic. The frozen holdout coverage is 0%.

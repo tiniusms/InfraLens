@@ -4,13 +4,13 @@ The page is a historical evaluation and infrastructure-screening prototype. It i
 
 ## Launch
 
-From the repository root, with the project virtual environment and the `demo` extra installed (`pip install -e ".[dev,demo]"`):
+From the repository root, with the project virtual environment and the `demo` extra installed (`python -m pip install -e ".[dev,demo]"`):
 
 ```bash
-.venv-arm64/bin/python -m streamlit run src/infralens/demo/app.py
+python -m streamlit run src/infralens/demo/app.py
 ```
 
-`streamlit run src/infralens/demo/app.py` is the same entry point after that environment is activated. Startup reads local files and the committed holdout summary. It does not call the EIA API, train a model, or run `python -m infralens.evaluation.final_holdout`. Do not run that holdout command again.
+Startup reads local files and the committed holdout summary. It does not call the EIA API, train a model, or run `python -m infralens.evaluation.final_holdout`. Do not run that holdout command again.
 
 The frozen primary-criterion banner stays above all three tabs: Ridge MAE 2.6384726503825626 ¢/kWh, seasonal-naive MAE 2.6136666666666666 ¢/kWh, empirical interval coverage 0.0. The result is FAIL.
 
