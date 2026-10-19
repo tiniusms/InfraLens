@@ -104,7 +104,7 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def handle_unexpected(_request: Request, exc: Exception) -> JSONResponse:
-        logger.warning("Unhandled API failure", exc_info=exc)
+        logger.warning("Unhandled API failure: %s", type(exc).__name__)
         return JSONResponse(
             status_code=500,
             content={

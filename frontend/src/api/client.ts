@@ -56,12 +56,24 @@ export type ApiClient = {
   getPjmScreen: (zone: string, forecastYear: number, asOf: string, signal?: AbortSignal) => Promise<PjmScreenResponse>;
 };
 
+/** Absolute API origin, or an empty string for same-origin `/api` requests.
+
+An unset value keeps the local default. An explicit empty string is same-origin.
+The public Vercel build sets an `https` origin instead. See `docs/portable_deployment.md`.
+*/
+export function resolveApiBaseUrl(configured: string | undefined): string {
+  if (configured === undefined) {
+    return "http://127.0.0.1:8000";
+  }
+  return configured.trim().replace(/\/$/, "");
+}
+
 function apiBaseUrl(): string {
   const configured = import.meta.env.VITE_API_BASE_URL;
-  if (typeof configured === "string" && configured.trim() !== "") {
-    return configured.trim().replace(/\/$/, "");
+  if (typeof configured !== "string") {
+    return resolveApiBaseUrl(undefined);
   }
-  return "http://127.0.0.1:8000";
+  return resolveApiBaseUrl(configured);
 }
 
 async function requestJson<T>(

@@ -11,6 +11,11 @@ The finance POST is limited to two scenarios and 8192 body bytes before JSON
 parsing. Those checks are defense in depth. A public gateway must still enforce
 request size, throttling, concurrency, and timeouts. This app does not trust
 forwarded headers.
+
+Host checks turn on when ``RENDER=true`` or ``INFRALENS_ALLOWED_HOSTS`` is set.
+The allowed names are ``localhost``, ``127.0.0.1``, ``RENDER_EXTERNAL_HOSTNAME``,
+and that explicit list. A wildcard host is rejected. See
+``docs/portable_deployment.md``.
 """
 
 from __future__ import annotations
@@ -22,6 +27,7 @@ from typing import Annotated
 
 from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from infralens.api.body_limit import FinanceBodyLimit
 from infralens.api.errors import register_exception_handlers
@@ -91,6 +97,9 @@ def create_app(
             allow_methods=["GET", "POST", "OPTIONS"],
             allow_headers=["Accept", "Content-Type"],
         )
+    hosts = _resolve_trusted_hosts()
+    if hosts is not None:
+        app.add_middleware(TrustedHostMiddleware, allowed_hosts=hosts, www_redirect=False)
     return app
 
 
@@ -165,6 +174,33 @@ def _resolve_root(root: Path | None) -> Path:
     if configured:
         return Path(configured)
     return repository_root()
+
+
+def _resolve_trusted_hosts() -> list[str] | None:
+    """Return exact hosts, or None when this process is not on a public host.
+
+    Render sets ``RENDER=true`` and ``RENDER_EXTERNAL_HOSTNAME``. Local tests leave
+    both unset, so the check stays off and does not reject the test client.
+    """
+
+    extra = [part.strip() for part in os.environ.get("INFRALENS_ALLOWED_HOSTS", "").split(",") if part.strip()]
+    if any(host == "*" or host.startswith("*") for host in extra):
+        raise ValueError("Allowed hosts must be explicit names. A wildcard host is not allowed.")
+    render_host = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "").strip()
+    on_render = os.environ.get("RENDER", "").strip().lower() == "true"
+    if on_render and not render_host:
+        raise ValueError("RENDER_EXTERNAL_HOSTNAME is required when RENDER=true.")
+    if not on_render and not extra and not render_host:
+        return None
+    hosts: list[str] = ["localhost", "127.0.0.1"]
+    if render_host:
+        hosts.append(render_host)
+    hosts.extend(extra)
+    unique: list[str] = []
+    for host in hosts:
+        if host not in unique:
+            unique.append(host)
+    return unique
 
 
 def _resolve_cors(cors_origins: list[str] | None) -> list[str]:

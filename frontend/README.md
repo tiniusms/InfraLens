@@ -12,6 +12,8 @@ VITE_API_BASE_URL=http://127.0.0.1:8000
 
 `VITE_API_BASE_URL` is the only frontend variable. Do not put `EIA_API_KEY` or any other secret in a Vite variable. Vite exposes `VITE_*` values to the browser.
 
+The public build sets `VITE_API_BASE_URL` to the Render `https` origin. An unset value stays `http://127.0.0.1:8000`. An explicit empty value calls same-origin `/api`; the Vercel config does not proxy that path. Deployment steps are in `docs/portable_deployment.md`.
+
 The API rejects a wildcard CORS origin. For this dev server, start the API with both local origins:
 
 ```bash

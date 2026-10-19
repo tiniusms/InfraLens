@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createClient } from "../api/client";
+import { createClient, resolveApiBaseUrl } from "../api/client";
 
 const summaryBody = {
   claim_boundary: "closed_historical_evaluation",
@@ -94,5 +94,13 @@ describe("api client", () => {
     );
     const client = createClient({ baseUrl: "http://127.0.0.1:8000", fetchImpl });
     await expect(client.getEvaluationSummary()).rejects.toMatchObject({ kind: "invalid_body" });
+  });
+});
+
+describe("resolveApiBaseUrl", () => {
+  it("keeps the local default when unset and allows an explicit same-origin base", () => {
+    expect(resolveApiBaseUrl(undefined)).toBe("http://127.0.0.1:8000");
+    expect(resolveApiBaseUrl("")).toBe("");
+    expect(resolveApiBaseUrl("https://example.invalid/")).toBe("https://example.invalid");
   });
 });
