@@ -1,0 +1,67 @@
+/*
+  Phase A tokens. Light and dark file-presence colors are both defined here.
+  The audit specified the light present pair only. The dark present pair is the
+  same role: a file is on disk. It is not a model-quality color.
+
+  Series band opacity is the audit value for a later chart. This phase does not draw it.
+*/
+
+:root {
+  --content-max: 1120px;
+  --chart-max: 1200px;
+  --sidebar-width: 232px;
+  --sheet-shadow: 0 8px 24px rgba(20, 24, 30, 0.18);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+}
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --paper: #f6f4ef;
+  --paper-raised: #fffdfa;
+  --paper-inset: #efebe3;
+  --ink: #1c2430;
+  --ink-muted: #3e4a57;
+  --line: #d8d2c8;
+  --focus: #1f4e79;
+  --series-actual: #1f4e79;
+  --series-ridge: #b85c38;
+  --series-naive: #2f6f4e;
+  --series-band: #e7d3c8;
+  --series-band-opacity: 0.45;
+  --finding-wash: #f3e6e3;
+  --finding-ink: #6b2222;
+  --unavailable-wash: #f6f1e4;
+  --unavailable-ink: #6b5420;
+  --present-wash: #e7f2ec;
+  --present-ink: #1e5c40;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #14181e;
+  --paper-raised: #1c222b;
+  --paper-inset: #12161c;
+  --ink: #e8e4dc;
+  --ink-muted: #b7c0ca;
+  --line: #313843;
+  --focus: #9ec0dc;
+  --series-actual: #9ec0dc;
+  --series-ridge: #e3b09a;
+  --series-naive: #a9cdb8;
+  --series-band: #5c463c;
+  --series-band-opacity: 0.55;
+  --finding-wash: #2a1717;
+  --finding-ink: #f0d2cc;
+  --unavailable-wash: #2a2418;
+  --unavailable-ink: #e6d3a8;
+  --present-wash: #1a2c22;
+  --present-ink: #c9e6d6;
+}

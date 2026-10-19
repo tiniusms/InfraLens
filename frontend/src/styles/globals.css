@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, sans-serif;
+  --font-serif: "Source Serif 4", ui-serif, serif;
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-paper-inset: var(--paper-inset);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-focus: var(--focus);
+  --color-series-actual: var(--series-actual);
+  --color-series-ridge: var(--series-ridge);
+  --color-series-naive: var(--series-naive);
+  --color-series-band: var(--series-band);
+  --color-finding-wash: var(--finding-wash);
+  --color-finding-ink: var(--finding-ink);
+  --color-unavailable-wash: var(--unavailable-wash);
+  --color-unavailable-ink: var(--unavailable-ink);
+  --color-present-wash: var(--present-wash);
+  --color-present-ink: var(--present-ink);
+}
+
+html {
+  background: var(--paper);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.finding-panel {
+  border-radius: 4px;
+  background: var(--finding-wash);
+  color: var(--finding-ink);
+}
+
+.unavailable-panel,
+.unavailable-chip {
+  background: var(--unavailable-wash);
+  color: var(--unavailable-ink);
+}
+
+.unavailable-panel {
+  border-radius: 4px;
+}
+
+.present-chip {
+  background: var(--present-wash);
+  color: var(--present-ink);
+}
+
+.operational-panel {
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+
+.sheet-shadow {
+  box-shadow: var(--sheet-shadow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}
