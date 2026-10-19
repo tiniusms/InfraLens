@@ -1,5 +1,21 @@
-import { parseErrorResponse, parseEvaluationSummary, parseHistory, parseHoldout, parseStatus } from "./parse";
-import type { EvaluationSummary, HistoryResponse, HoldoutResponse, StatusResponse } from "./types";
+import {
+  parseErrorResponse,
+  parseEvaluationSummary,
+  parseFinance,
+  parseHistory,
+  parseHoldout,
+  parseHoldoutCases,
+  parseStatus,
+} from "./parse";
+import type {
+  EvaluationSummary,
+  FinanceRequest,
+  FinanceResponse,
+  HistoryResponse,
+  HoldoutCasesResponse,
+  HoldoutResponse,
+  StatusResponse,
+} from "./types";
 
 export type ClientFailureKind = "connection" | "http" | "invalid_body";
 
@@ -7,13 +23,21 @@ export class ApiClientError extends Error {
   readonly kind: ClientFailureKind;
   readonly status: number | null;
   readonly code: string | null;
+  readonly field: string | null;
 
-  constructor(kind: ClientFailureKind, message: string, status: number | null = null, code: string | null = null) {
+  constructor(
+    kind: ClientFailureKind,
+    message: string,
+    status: number | null = null,
+    code: string | null = null,
+    field: string | null = null,
+  ) {
     super(message);
     this.name = "ApiClientError";
     this.kind = kind;
     this.status = status;
     this.code = code;
+    this.field = field;
   }
 }
 
@@ -22,6 +46,8 @@ export type ApiClient = {
   getEvaluationSummary: (signal?: AbortSignal) => Promise<EvaluationSummary>;
   getHistory: (stateId: string, signal?: AbortSignal) => Promise<HistoryResponse>;
   getHoldout: (stateId: string, signal?: AbortSignal) => Promise<HoldoutResponse>;
+  getHoldoutCases: (signal?: AbortSignal) => Promise<HoldoutCasesResponse>;
+  postFinanceScenarios: (body: FinanceRequest, signal?: AbortSignal) => Promise<FinanceResponse>;
 };
 
 function apiBaseUrl(): string {
@@ -32,18 +58,20 @@ function apiBaseUrl(): string {
   return "http://127.0.0.1:8000";
 }
 
-async function getJson<T>(
+async function requestJson<T>(
   fetchImpl: typeof fetch,
   baseUrl: string,
   path: string,
   parse: (value: unknown) => T,
-  signal?: AbortSignal,
+  signal: AbortSignal | undefined,
+  body?: unknown,
 ): Promise<T> {
   let response: Response;
   try {
     response = await fetchImpl(`${baseUrl}${path}`, {
-      method: "GET",
-      headers: { Accept: "application/json" },
+      method: body === undefined ? "GET" : "POST",
+      headers: body === undefined ? { Accept: "application/json" } : { Accept: "application/json", "Content-Type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
       signal,
     });
   } catch (error) {
@@ -54,10 +82,10 @@ async function getJson<T>(
   }
 
   const text = await response.text();
-  let body: unknown = null;
+  let payload: unknown = null;
   if (text !== "") {
     try {
-      body = JSON.parse(text) as unknown;
+      payload = JSON.parse(text) as unknown;
     } catch {
       throw new ApiClientError(
         "invalid_body",
@@ -68,17 +96,18 @@ async function getJson<T>(
   }
 
   if (!response.ok) {
-    const parsed = parseErrorResponse(body);
+    const parsed = parseErrorResponse(payload);
     throw new ApiClientError(
       "http",
       parsed?.message ?? "Request failed.",
       response.status,
       parsed?.code ?? null,
+      parsed?.field ?? null,
     );
   }
 
   try {
-    return parse(body);
+    return parse(payload);
   } catch {
     throw new ApiClientError(
       "invalid_body",
@@ -92,11 +121,11 @@ export function createClient(options?: { baseUrl?: string; fetchImpl?: typeof fe
   const fetchImpl = options?.fetchImpl ?? fetch;
   const baseUrl = (options?.baseUrl ?? apiBaseUrl()).replace(/\/$/, "");
   return {
-    getStatus: (signal) => getJson(fetchImpl, baseUrl, "/api/v1/status", parseStatus, signal),
+    getStatus: (signal) => requestJson(fetchImpl, baseUrl, "/api/v1/status", parseStatus, signal),
     getEvaluationSummary: (signal) =>
-      getJson(fetchImpl, baseUrl, "/api/v1/evaluation/summary", parseEvaluationSummary, signal),
+      requestJson(fetchImpl, baseUrl, "/api/v1/evaluation/summary", parseEvaluationSummary, signal),
     getHistory: (stateId, signal) =>
-      getJson(
+      requestJson(
         fetchImpl,
         baseUrl,
         `/api/v1/eia/history?state_id=${encodeURIComponent(stateId)}`,
@@ -104,13 +133,17 @@ export function createClient(options?: { baseUrl?: string; fetchImpl?: typeof fe
         signal,
       ),
     getHoldout: (stateId, signal) =>
-      getJson(
+      requestJson(
         fetchImpl,
         baseUrl,
         `/api/v1/eia/holdout?state_id=${encodeURIComponent(stateId)}`,
         parseHoldout,
         signal,
       ),
+    getHoldoutCases: (signal) =>
+      requestJson(fetchImpl, baseUrl, "/api/v1/eia/holdout/cases", parseHoldoutCases, signal),
+    postFinanceScenarios: (body, signal) =>
+      requestJson(fetchImpl, baseUrl, "/api/v1/finance/scenarios", parseFinance, signal, body),
   };
 }
 

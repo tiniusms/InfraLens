@@ -72,6 +72,8 @@ function readyClient(): ApiClient {
     getEvaluationSummary: () => Promise.resolve(frozenSummary),
     getHistory: () => new Promise(() => undefined),
     getHoldout: () => new Promise(() => undefined),
+    getHoldoutCases: () => new Promise(() => undefined),
+    postFinanceScenarios: () => new Promise(() => undefined),
   };
 }
 
@@ -81,6 +83,8 @@ function failedClient(error: ApiClientError): ApiClient {
     getEvaluationSummary: () => Promise.reject(error),
     getHistory: () => Promise.reject(error),
     getHoldout: () => Promise.reject(error),
+    getHoldoutCases: () => Promise.reject(error),
+    postFinanceScenarios: () => Promise.reject(error),
   };
 }
 

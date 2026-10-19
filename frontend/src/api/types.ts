@@ -113,6 +113,77 @@ export type HoldoutResponse = {
   points: HoldoutPoint[];
 };
 
+export type HoldoutCase = {
+  state_id: string;
+  forecast_origin: string;
+  target_month: string;
+  ridge_prediction_cents_per_kwh: string;
+  actual_cents_per_kwh: string;
+  seasonal_naive_prediction_cents_per_kwh: string;
+  unit: "cents/kWh";
+  ridge_role: "closed_prediction";
+  actual_role: "observed";
+};
+
+export type HoldoutCasesResponse = {
+  claim_boundary: "closed_historical_evaluation";
+  limitations: string;
+  unit: "cents/kWh";
+  row_count: number;
+  cases: HoldoutCase[];
+};
+
+export type FinanceScenarioInput = {
+  name: string;
+  source: "typed_hypothetical" | "holdout_ridge";
+  price_cents_per_kwh?: string;
+  case_key?: {
+    state_id: string;
+    forecast_origin: string;
+    target_month: string;
+  };
+};
+
+export type FinanceRequest = {
+  it_capacity_mw: string;
+  pue: string;
+  utilization: string;
+  operating_hours_per_year: string;
+  baseline_name: string;
+  scenarios: FinanceScenarioInput[];
+};
+
+export type FinanceScenarioResult = {
+  scenario_name: string;
+  price_source: "typed_hypothetical" | "holdout_ridge";
+  price_label: string;
+  claim_boundary: "hypothetical_energy_cost";
+  it_capacity_mw: string;
+  pue: string;
+  utilization: string;
+  operating_hours_per_year: string;
+  facility_average_demand_mw: string;
+  facility_average_demand_unit: string;
+  annual_consumption_kwh: string;
+  annual_consumption_unit: string;
+  price_cents_per_kwh: string;
+  price_unit: string;
+  annual_electricity_cost_usd: string;
+  annual_electricity_cost_unit: string;
+  baseline_scenario_name: string;
+  cost_difference_vs_baseline_usd: string;
+  cost_difference_unit: string;
+  model_derived_eia_price: boolean;
+  model_price_warning: string | null;
+};
+
+export type FinanceResponse = {
+  claim_boundary: "hypothetical_energy_cost";
+  closed_holdout_claim_boundary: "closed_historical_evaluation" | null;
+  closed_holdout_limitation: string | null;
+  scenarios: FinanceScenarioResult[];
+};;
+
 export type EvaluationSummary = {
   claim_boundary: "closed_historical_evaluation";
   source_label: string;

@@ -147,6 +147,8 @@ describe("electricity intelligence", () => {
         holdouts.set(state, job);
         return job.promise;
       },
+      getHoldoutCases: () => new Promise(() => undefined),
+      postFinanceScenarios: () => new Promise(() => undefined),
     };
     renderElectricity(client);
 
@@ -188,6 +190,8 @@ describe("electricity intelligence", () => {
       getEvaluationSummary: () => Promise.resolve(summary),
       getHistory: (state) => Promise.resolve(history(state, "11.1")),
       getHoldout: (state) => Promise.resolve(holdout(state, "13.25", true)),
+      getHoldoutCases: () => new Promise(() => undefined),
+      postFinanceScenarios: () => new Promise(() => undefined),
     };
     renderElectricity(client);
 
@@ -254,6 +258,8 @@ describe("electricity intelligence", () => {
       getHistory: () =>
         Promise.reject(new ApiClientError("http", "EIA commercial price history is not on this machine.", 404, "artifact_missing")),
       getHoldout: (state) => Promise.resolve(holdout(state, "13.25", true)),
+      getHoldoutCases: () => new Promise(() => undefined),
+      postFinanceScenarios: () => new Promise(() => undefined),
     };
     renderElectricity(client);
     expect(await screen.findByRole("heading", { name: "Price history unavailable" })).toBeInTheDocument();
@@ -270,6 +276,8 @@ describe("electricity intelligence", () => {
         Promise.reject(
           new ApiClientError("http", "The frozen holdout case file is not on this machine.", 404, "artifact_missing"),
         ),
+      getHoldoutCases: () => new Promise(() => undefined),
+      postFinanceScenarios: () => new Promise(() => undefined),
     };
     renderElectricity(client);
     expect(await screen.findByRole("heading", { name: "Closed holdout unavailable" })).toBeInTheDocument();
@@ -284,6 +292,8 @@ describe("electricity intelligence", () => {
       getEvaluationSummary: () => Promise.reject(error),
       getHistory: () => Promise.reject(error),
       getHoldout: () => Promise.reject(error),
+      getHoldoutCases: () => new Promise(() => undefined),
+      postFinanceScenarios: () => new Promise(() => undefined),
     };
     renderElectricity(client);
     expect(await screen.findAllByRole("heading", { name: "Connection unavailable" })).toHaveLength(3);

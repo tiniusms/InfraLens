@@ -6,8 +6,12 @@ import type {
   ErrorCode,
   ErrorResponse,
   EvaluationSummary,
+  FinanceResponse,
+  FinanceScenarioResult,
   HistoryPoint,
   HistoryResponse,
+  HoldoutCase,
+  HoldoutCasesResponse,
   HoldoutPoint,
   HoldoutResponse,
   SeriesValue,
@@ -399,5 +403,115 @@ export function parseHoldout(value: unknown): HoldoutResponse {
     },
     returned_row_count: returned,
     points,
+  };
+}
+
+function parseHoldoutCase(value: unknown): HoldoutCase {
+  if (!isRecord(value)) {
+    throw new ContractError("Holdout case is not an object.");
+  }
+  if (value.unit !== "cents/kWh" || value.ridge_role !== "closed_prediction" || value.actual_role !== "observed") {
+    throw new ContractError("Holdout case role or unit is unexpected.");
+  }
+  return {
+    state_id: requiredString(value, "state_id"),
+    forecast_origin: requiredString(value, "forecast_origin"),
+    target_month: monthField(value, "target_month"),
+    ridge_prediction_cents_per_kwh: decimalField(value, "ridge_prediction_cents_per_kwh"),
+    actual_cents_per_kwh: decimalField(value, "actual_cents_per_kwh"),
+    seasonal_naive_prediction_cents_per_kwh: decimalField(value, "seasonal_naive_prediction_cents_per_kwh"),
+    unit: "cents/kWh",
+    ridge_role: "closed_prediction",
+    actual_role: "observed",
+  };
+}
+
+export function parseHoldoutCases(value: unknown): HoldoutCasesResponse {
+  if (!isRecord(value) || value.claim_boundary !== "closed_historical_evaluation" || value.unit !== "cents/kWh") {
+    throw new ContractError("Holdout cases response is unexpected.");
+  }
+  if (!Array.isArray(value.cases)) {
+    throw new ContractError("Holdout cases are missing.");
+  }
+  const cases = value.cases.map(parseHoldoutCase);
+  if (integerField(value, "row_count") !== cases.length) {
+    throw new ContractError("Holdout case count does not match the rows.");
+  }
+  return {
+    claim_boundary: "closed_historical_evaluation",
+    limitations: requiredString(value, "limitations"),
+    unit: "cents/kWh",
+    row_count: cases.length,
+    cases,
+  };
+}
+
+function nullableText(value: unknown, label: string): string | null {
+  if (value === null) {
+    return null;
+  }
+  if (typeof value !== "string" || value.length === 0) {
+    throw new ContractError(`${label} is not text.`);
+  }
+  return value;
+}
+
+function parseFinanceScenario(value: unknown): FinanceScenarioResult {
+  if (!isRecord(value) || value.claim_boundary !== "hypothetical_energy_cost") {
+    throw new ContractError("Finance scenario claim is unexpected.");
+  }
+  if (value.price_source !== "typed_hypothetical" && value.price_source !== "holdout_ridge") {
+    throw new ContractError("Finance price source is unexpected.");
+  }
+  if (
+    value.facility_average_demand_unit !== "MW" ||
+    value.annual_consumption_unit !== "kWh" ||
+    value.price_unit !== "cents/kWh" ||
+    value.annual_electricity_cost_unit !== "USD" ||
+    value.cost_difference_unit !== "USD"
+  ) {
+    throw new ContractError("Finance units are unexpected.");
+  }
+  if (typeof value.model_derived_eia_price !== "boolean") {
+    throw new ContractError("Finance model flag is not boolean.");
+  }
+  return {
+    scenario_name: requiredString(value, "scenario_name"),
+    price_source: value.price_source,
+    price_label: requiredString(value, "price_label"),
+    claim_boundary: "hypothetical_energy_cost",
+    it_capacity_mw: decimalField(value, "it_capacity_mw"),
+    pue: decimalField(value, "pue"),
+    utilization: decimalField(value, "utilization"),
+    operating_hours_per_year: decimalField(value, "operating_hours_per_year"),
+    facility_average_demand_mw: decimalField(value, "facility_average_demand_mw"),
+    facility_average_demand_unit: "MW",
+    annual_consumption_kwh: decimalField(value, "annual_consumption_kwh"),
+    annual_consumption_unit: "kWh",
+    price_cents_per_kwh: decimalField(value, "price_cents_per_kwh"),
+    price_unit: "cents/kWh",
+    annual_electricity_cost_usd: decimalField(value, "annual_electricity_cost_usd"),
+    annual_electricity_cost_unit: "USD",
+    baseline_scenario_name: requiredString(value, "baseline_scenario_name"),
+    cost_difference_vs_baseline_usd: decimalField(value, "cost_difference_vs_baseline_usd"),
+    cost_difference_unit: "USD",
+    model_derived_eia_price: value.model_derived_eia_price,
+    model_price_warning: nullableText(value.model_price_warning, "Model price warning"),
+  };
+}
+
+export function parseFinance(value: unknown): FinanceResponse {
+  if (!isRecord(value) || value.claim_boundary !== "hypothetical_energy_cost" || !Array.isArray(value.scenarios)) {
+    throw new ContractError("Finance response is incomplete.");
+  }
+  const boundary = value.closed_holdout_claim_boundary;
+  if (boundary !== null && boundary !== "closed_historical_evaluation") {
+    throw new ContractError("Finance holdout claim is unexpected.");
+  }
+  return {
+    claim_boundary: "hypothetical_energy_cost",
+    closed_holdout_claim_boundary: boundary,
+    closed_holdout_limitation: nullableText(value.closed_holdout_limitation, "Closed holdout limitation"),
+    scenarios: value.scenarios.map(parseFinanceScenario),
   };
 }
