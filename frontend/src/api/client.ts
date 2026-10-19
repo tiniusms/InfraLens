@@ -1,5 +1,5 @@
-import { parseErrorResponse, parseEvaluationSummary, parseStatus } from "./parse";
-import type { EvaluationSummary, StatusResponse } from "./types";
+import { parseErrorResponse, parseEvaluationSummary, parseHistory, parseHoldout, parseStatus } from "./parse";
+import type { EvaluationSummary, HistoryResponse, HoldoutResponse, StatusResponse } from "./types";
 
 export type ClientFailureKind = "connection" | "http" | "invalid_body";
 
@@ -20,6 +20,8 @@ export class ApiClientError extends Error {
 export type ApiClient = {
   getStatus: (signal?: AbortSignal) => Promise<StatusResponse>;
   getEvaluationSummary: (signal?: AbortSignal) => Promise<EvaluationSummary>;
+  getHistory: (stateId: string, signal?: AbortSignal) => Promise<HistoryResponse>;
+  getHoldout: (stateId: string, signal?: AbortSignal) => Promise<HoldoutResponse>;
 };
 
 function apiBaseUrl(): string {
@@ -93,6 +95,22 @@ export function createClient(options?: { baseUrl?: string; fetchImpl?: typeof fe
     getStatus: (signal) => getJson(fetchImpl, baseUrl, "/api/v1/status", parseStatus, signal),
     getEvaluationSummary: (signal) =>
       getJson(fetchImpl, baseUrl, "/api/v1/evaluation/summary", parseEvaluationSummary, signal),
+    getHistory: (stateId, signal) =>
+      getJson(
+        fetchImpl,
+        baseUrl,
+        `/api/v1/eia/history?state_id=${encodeURIComponent(stateId)}`,
+        parseHistory,
+        signal,
+      ),
+    getHoldout: (stateId, signal) =>
+      getJson(
+        fetchImpl,
+        baseUrl,
+        `/api/v1/eia/holdout?state_id=${encodeURIComponent(stateId)}`,
+        parseHoldout,
+        signal,
+      ),
   };
 }
 

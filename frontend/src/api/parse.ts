@@ -6,6 +6,11 @@ import type {
   ErrorCode,
   ErrorResponse,
   EvaluationSummary,
+  HistoryPoint,
+  HistoryResponse,
+  HoldoutPoint,
+  HoldoutResponse,
+  SeriesValue,
   StateMae,
   StatusResponse,
 } from "./types";
@@ -210,5 +215,189 @@ export function parseEvaluationSummary(value: unknown): EvaluationSummary {
       nominal_interval_coverage: decimalField(summary, "nominal_interval_coverage"),
       mae_by_state: maeByState,
     },
+  };
+}
+
+const MONTH = /^\d{4}-\d{2}$/;
+
+function integerField(record: Record<string, unknown>, key: string): number {
+  const value = record[key];
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+    throw new ContractError(`Field ${key} is not a count.`);
+  }
+  return value;
+}
+
+function optionalString(record: Record<string, unknown>, key: string): string | null {
+  const value = record[key];
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (typeof value !== "string" || value.length === 0) {
+    throw new ContractError(`Field ${key} is not text.`);
+  }
+  return value;
+}
+
+function optionalDecimal(record: Record<string, unknown>, key: string): string | null {
+  const value = record[key];
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (typeof value !== "string" || !isDecimalString(value)) {
+    throw new ContractError(`Field ${key} is not a decimal string.`);
+  }
+  return value;
+}
+
+function monthField(record: Record<string, unknown>, key: string): string {
+  const value = requiredString(record, key);
+  if (!MONTH.test(value)) {
+    throw new ContractError(`Field ${key} is not a month.`);
+  }
+  return value;
+}
+
+function parseHistoryPoint(value: unknown, expectedState: string | null): HistoryPoint {
+  if (!isRecord(value)) {
+    throw new ContractError("History point is not an object.");
+  }
+  if (value.unit !== "cents/kWh" || value.role !== "observed") {
+    throw new ContractError("History point role or unit is unexpected.");
+  }
+  const stateId = requiredString(value, "state_id");
+  if (expectedState !== null && stateId !== expectedState) {
+    throw new ContractError("History point state does not match the request.");
+  }
+  return {
+    state_id: stateId,
+    period: monthField(value, "period"),
+    observed_price_cents_per_kwh: decimalField(value, "observed_price_cents_per_kwh"),
+    unit: "cents/kWh",
+    role: "observed",
+  };
+}
+
+export function parseHistory(value: unknown): HistoryResponse {
+  if (!isRecord(value)) {
+    throw new ContractError("History response is not an object.");
+  }
+  if (value.claim_boundary !== "observed_history" || value.unit !== "cents/kWh") {
+    throw new ContractError("History claim or unit is unexpected.");
+  }
+  const stateId = optionalString(value, "state_id");
+  if (!Array.isArray(value.points)) {
+    throw new ContractError("History points are missing.");
+  }
+  const points = value.points.map((point) => parseHistoryPoint(point, stateId));
+  const returned = integerField(value, "returned_row_count");
+  if (returned !== points.length) {
+    throw new ContractError("History row count does not match the points.");
+  }
+  return {
+    claim_boundary: "observed_history",
+    state_id: stateId,
+    extract_id: requiredString(value, "extract_id"),
+    retrieved_at: optionalString(value, "retrieved_at"),
+    source_name: optionalString(value, "source_name"),
+    recorded_price_units: optionalString(value, "recorded_price_units"),
+    unit: "cents/kWh",
+    earliest_period: monthField(value, "earliest_period"),
+    latest_period: monthField(value, "latest_period"),
+    extract_row_count: integerField(value, "extract_row_count"),
+    returned_row_count: returned,
+    limitations: requiredString(value, "limitations"),
+    series_name: requiredString(value, "series_name"),
+    points,
+  };
+}
+
+function parseSeriesValue<Role extends SeriesValue["role"]>(
+  value: unknown,
+  role: Role,
+): SeriesValue & { role: Role } {
+  if (!isRecord(value) || value.unit !== "cents/kWh" || value.role !== role) {
+    throw new ContractError("Series value role or unit is unexpected.");
+  }
+  return {
+    cents_per_kwh: decimalField(value, "cents_per_kwh"),
+    unit: "cents/kWh",
+    role,
+  };
+}
+
+function parseHoldoutPoint(value: unknown, expectedState: string | null): HoldoutPoint {
+  if (!isRecord(value) || !isRecord(value.interval) || !isRecord(value.provenance)) {
+    throw new ContractError("Holdout point is incomplete.");
+  }
+  if (value.interval.unit !== "cents/kWh") {
+    throw new ContractError("Holdout interval unit is unexpected.");
+  }
+  const covered = value.interval.covered;
+  if (covered !== null && covered !== undefined && typeof covered !== "boolean") {
+    throw new ContractError("Holdout interval coverage flag is not boolean.");
+  }
+  const stateId = requiredString(value, "state_id");
+  if (expectedState !== null && stateId !== expectedState) {
+    throw new ContractError("Holdout point state does not match the request.");
+  }
+  return {
+    state_id: stateId,
+    target_month: monthField(value, "target_month"),
+    actual: parseSeriesValue(value.actual, "observed"),
+    ridge: parseSeriesValue(value.ridge, "closed_prediction"),
+    seasonal_naive: parseSeriesValue(value.seasonal_naive, "closed_prediction"),
+    interval: {
+      lower_cents_per_kwh: optionalDecimal(value.interval, "lower_cents_per_kwh"),
+      upper_cents_per_kwh: optionalDecimal(value.interval, "upper_cents_per_kwh"),
+      covered: typeof covered === "boolean" ? covered : null,
+      unit: "cents/kWh",
+    },
+    provenance: {
+      forecast_origin: requiredString(value.provenance, "forecast_origin"),
+    },
+  };
+}
+
+export function parseHoldout(value: unknown): HoldoutResponse {
+  if (!isRecord(value) || !isRecord(value.window)) {
+    throw new ContractError("Holdout response is incomplete.");
+  }
+  if (value.claim_boundary !== "closed_historical_evaluation") {
+    throw new ContractError("Holdout claim boundary is unexpected.");
+  }
+  const window = value.window;
+  if (window.axis !== "target_month" || window.empirical_interval_coverage_unit !== "share") {
+    throw new ContractError("Holdout axis or coverage unit is unexpected.");
+  }
+  const stateId = optionalString(value, "state_id");
+  if (!Array.isArray(value.points)) {
+    throw new ContractError("Holdout points are missing.");
+  }
+  const points = value.points.map((point) => parseHoldoutPoint(point, stateId));
+  const returned = integerField(value, "returned_row_count");
+  if (returned !== points.length) {
+    throw new ContractError("Holdout row count does not match the points.");
+  }
+  return {
+    claim_boundary: "closed_historical_evaluation",
+    state_id: stateId,
+    limitations: requiredString(value, "limitations"),
+    window: {
+      axis: "target_month",
+      origin_start: requiredString(window, "origin_start"),
+      origin_end: requiredString(window, "origin_end"),
+      target_start: monthField(window, "target_start"),
+      target_end: monthField(window, "target_end"),
+      extract_id: optionalString(window, "extract_id"),
+      feature_set_id: optionalString(window, "feature_set_id"),
+      evaluation_stage: optionalString(window, "evaluation_stage"),
+      summary_source: optionalString(window, "summary_source"),
+      interval_warning: optionalString(window, "interval_warning"),
+      empirical_interval_coverage: optionalDecimal(window, "empirical_interval_coverage"),
+      empirical_interval_coverage_unit: "share",
+    },
+    returned_row_count: returned,
+    points,
   };
 }

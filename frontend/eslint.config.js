@@ -20,13 +20,19 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+    },
+  },
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/features/electricity/**", "src/components/charts/**"],
+    rules: {
       "no-restricted-imports": [
         "error",
         {
           paths: [
             {
               name: "recharts",
-              message: "Charts belong to a later phase. Do not import Recharts in the shell.",
+              message: "Import Recharts only from the electricity charts.",
             },
           ],
         },

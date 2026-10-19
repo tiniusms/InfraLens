@@ -70,6 +70,8 @@ function readyClient(): ApiClient {
   return {
     getStatus: () => Promise.resolve(mixedStatus),
     getEvaluationSummary: () => Promise.resolve(frozenSummary),
+    getHistory: () => new Promise(() => undefined),
+    getHoldout: () => new Promise(() => undefined),
   };
 }
 
@@ -77,6 +79,8 @@ function failedClient(error: ApiClientError): ApiClient {
   return {
     getStatus: () => Promise.reject(error),
     getEvaluationSummary: () => Promise.reject(error),
+    getHistory: () => Promise.reject(error),
+    getHoldout: () => Promise.reject(error),
   };
 }
 

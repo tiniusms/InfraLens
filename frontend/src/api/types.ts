@@ -43,6 +43,76 @@ export type StateMae = {
   ridge_mae: string;
 };
 
+export type HistoryPoint = {
+  state_id: string;
+  period: string;
+  observed_price_cents_per_kwh: string;
+  unit: "cents/kWh";
+  role: "observed";
+};
+
+export type HistoryResponse = {
+  claim_boundary: "observed_history";
+  state_id: string | null;
+  extract_id: string;
+  retrieved_at: string | null;
+  source_name: string | null;
+  recorded_price_units: string | null;
+  unit: "cents/kWh";
+  earliest_period: string;
+  latest_period: string;
+  extract_row_count: number;
+  returned_row_count: number;
+  limitations: string;
+  series_name: string;
+  points: HistoryPoint[];
+};
+
+export type SeriesValue = {
+  cents_per_kwh: string;
+  unit: "cents/kWh";
+  role: "observed" | "closed_prediction";
+};
+
+export type HoldoutPoint = {
+  state_id: string;
+  target_month: string;
+  actual: SeriesValue & { role: "observed" };
+  ridge: SeriesValue & { role: "closed_prediction" };
+  seasonal_naive: SeriesValue & { role: "closed_prediction" };
+  interval: {
+    lower_cents_per_kwh: string | null;
+    upper_cents_per_kwh: string | null;
+    covered: boolean | null;
+    unit: "cents/kWh";
+  };
+  provenance: {
+    forecast_origin: string;
+  };
+};
+
+export type HoldoutResponse = {
+  claim_boundary: "closed_historical_evaluation";
+  state_id: string | null;
+  limitations: string;
+  window: {
+    axis: "target_month";
+    origin_start: string;
+    origin_end: string;
+    target_start: string;
+    target_end: string;
+    extract_id: string | null;
+    feature_set_id: string | null;
+    evaluation_stage: string | null;
+    summary_source: string | null;
+    interval_warning: string | null;
+    empirical_interval_coverage: string | null;
+    empirical_interval_coverage_unit: "share";
+  };
+  returned_row_count: number;
+  points: HoldoutPoint[];
+};
+
 export type EvaluationSummary = {
   claim_boundary: "closed_historical_evaluation";
   source_label: string;
