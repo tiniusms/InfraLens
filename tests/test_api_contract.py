@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import asyncio
 import hashlib
 import json
 from datetime import date
@@ -14,6 +15,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from infralens.api.app import create_app
+from infralens.api.schemas import FINANCE_MAX_BODY_BYTES
 from infralens.data import repository_root
 from infralens.demo.eia_views import DEMO_STATES, HOLDOUT_TARGET_MONTHS
 from infralens.demo.foundation import default_artifact_paths
@@ -310,6 +312,131 @@ def test_finance_range_errors_name_the_field(
     body = _json(response)
     assert body["code"] == "validation_error"
     assert body["field"] == expected_field
+
+
+def test_finance_rejects_a_third_scenario_and_an_oversized_body(tmp_path: Path) -> None:
+    extra = {
+        "name": "third",
+        "source": "typed_hypothetical",
+        "price_cents_per_kwh": "11",
+    }
+    with _client(tmp_path) as client:
+        too_many = client.post(
+            "/api/v1/finance/scenarios",
+            json=_finance_body(scenarios=[*_finance_body()["scenarios"], extra]),
+        )
+        accepted = client.post("/api/v1/finance/scenarios", json=_finance_body())
+    assert too_many.status_code == 422
+    assert _json(too_many)["code"] == "validation_error"
+    assert _json(too_many)["field"] == "scenarios"
+    assert "/" not in _json(too_many)["message"]
+    assert accepted.status_code == 200
+    rows = {row["scenario_name"]: row for row in _json(accepted)["scenarios"]}
+    assert rows["baseline"]["annual_consumption_kwh"] == "455520000"
+    assert rows["baseline"]["annual_electricity_cost_usd"] == "54662400"
+    assert rows["comparison"]["annual_electricity_cost_usd"] == "45552000"
+    assert rows["comparison"]["cost_difference_vs_baseline_usd"] == "-9110400"
+
+    app = create_app(root=tmp_path, cors_origins=[])
+    valid = json.dumps(_finance_body()).encode("utf-8")
+    declared = _post_asgi(
+        app,
+        b"{}",
+        [(b"content-type", b"application/json"), (b"content-length", str(FINANCE_MAX_BODY_BYTES + 1).encode())],
+        read_body=False,
+    )
+    assert declared[0] == 413
+    assert declared[2] is False
+    assert json.loads(declared[1])["code"] == "request_too_large"
+    assert "byte" in json.loads(declared[1])["message"]
+    assert "/" not in json.loads(declared[1])["message"]
+
+    chunked = _post_asgi(
+        app,
+        b"{" * (FINANCE_MAX_BODY_BYTES + 1),
+        [(b"content-type", b"application/json")],
+    )
+    assert chunked[0] == 413
+
+    understated = _post_asgi(
+        app,
+        b"{" * (FINANCE_MAX_BODY_BYTES + 1),
+        [(b"content-type", b"application/json"), (b"content-length", b"8")],
+    )
+    assert understated[0] == 413
+
+    forwarded = _post_asgi(
+        app,
+        valid,
+        [
+            (b"content-type", b"application/json"),
+            (b"content-length", str(len(valid)).encode()),
+            (b"x-forwarded-for", b"203.0.113.5"),
+            (b"x-forwarded-content-length", str(FINANCE_MAX_BODY_BYTES + 50).encode()),
+        ],
+    )
+    assert forwarded[0] == 200
+    forwarded_rows = {row["scenario_name"]: row for row in json.loads(forwarded[1])["scenarios"]}
+    assert forwarded_rows["baseline"]["annual_electricity_cost_usd"] == "54662400"
+
+    exact_limit = _post_asgi(
+        app,
+        b"{" * FINANCE_MAX_BODY_BYTES,
+        [(b"content-type", b"application/json")],
+    )
+    assert exact_limit[0] == 422
+    assert json.loads(exact_limit[1])["code"] == "validation_error"
+
+
+def _post_asgi(
+    app: object,
+    body: bytes,
+    headers: list[tuple[bytes, bytes]],
+    *,
+    read_body: bool = True,
+) -> tuple[int, bytes, bool]:
+    """POST through ASGI so a missing or false Content-Length can be tested."""
+
+    read = False
+    messages: list[dict] = []
+
+    async def receive() -> dict:
+        nonlocal read
+        if read:
+            return {"type": "http.disconnect"}
+        read = True
+        if not read_body:
+            raise AssertionError("The body was read after a declared oversized Content-Length.")
+        return {"type": "http.request", "body": body, "more_body": False}
+
+    async def send(message: dict) -> None:
+        messages.append(message)
+
+    async def run() -> None:
+        await app(  # type: ignore[operator]
+            {
+                "type": "http",
+                "asgi": {"version": "3.0", "spec_version": "2.3"},
+                "http_version": "1.1",
+                "method": "POST",
+                "scheme": "http",
+                "path": "/api/v1/finance/scenarios",
+                "raw_path": b"/api/v1/finance/scenarios",
+                "query_string": b"",
+                "headers": headers,
+                "client": ("127.0.0.1", 50000),
+                "server": ("127.0.0.1", 80),
+            },
+            receive,
+            send,
+        )
+
+    asyncio.run(run())
+    start = next(message for message in messages if message["type"] == "http.response.start")
+    payload = b"".join(
+        message.get("body", b"") for message in messages if message["type"] == "http.response.body"
+    )
+    return start["status"], payload, read
 
 
 def test_negative_price_and_client_controlled_model_flag_are_rejected(tmp_path: Path) -> None:

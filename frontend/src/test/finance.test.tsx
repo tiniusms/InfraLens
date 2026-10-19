@@ -158,8 +158,14 @@ describe("financial scenario studio", () => {
     }
     await user.click(screen.getByRole("button", { name: "Calculate annual energy charge" }));
 
+    const comparison = screen.getByRole("group", { name: "Comparison scenario" });
+    expect(within(comparison).getByText("10 means 10 cents per kilowatt-hour, not 0.10 dollars per kilowatt-hour.")).toBeInTheDocument();
+    expect(within(comparison).queryByText(/12 means 12 cents/)).not.toBeInTheDocument();
+    expect(within(comparison).getByRole("textbox", { name: "Energy price, cents/kWh" })).toHaveValue("10");
+
     expect(await screen.findByText("455520000 kWh")).toBeInTheDocument();
     expect(screen.getByText("54662400 USD")).toBeInTheDocument();
+    expect(screen.getByText("45552000 USD")).toBeInTheDocument();
     expect(screen.getByText("-9110400 USD")).toBeInTheDocument();
     expect(screen.queryByText(/FAIL/)).not.toBeInTheDocument();
     expect(posts[0]?.utilization).toBe("0.80");

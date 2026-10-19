@@ -141,6 +141,19 @@ describe("navigation", () => {
     expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "page");
   });
 
+  it("makes the state MAE table a labeled keyboard scroll region", async () => {
+    setDesktop(false);
+    renderAt("/");
+    const region = await screen.findByRole("region", { name: "State MAE" });
+    expect(region).toHaveAttribute("tabindex", "0");
+    expect(screen.getByText("Scroll horizontally to read every column")).toBeInTheDocument();
+    expect(within(region).getByRole("columnheader", { name: "Seasonal-naive MAE" })).toBeInTheDocument();
+    expect(within(region).getByText("1.7816666666666672")).toBeInTheDocument();
+    expect(within(region).getByText("2.3500265777547478")).toBeInTheDocument();
+    region.focus();
+    expect(region).toHaveFocus();
+  });
+
   it("moves focus into the section sheet and returns it on Escape", async () => {
     setDesktop(false);
     const user = userEvent.setup();

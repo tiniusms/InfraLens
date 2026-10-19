@@ -314,6 +314,48 @@ describe("electricity intelligence", () => {
     expect(document.querySelector("[data-chart]")).toBeNull();
   });
 
+  it("keeps all 306 observed months inside a bounded scroll region", async () => {
+    const points = Array.from({ length: 306 }, (_, index) => {
+      const year = 2001 + Math.floor(index / 12);
+      const month = String((index % 12) + 1).padStart(2, "0");
+      return {
+        state_id: "VA",
+        period: `${year}-${month}`,
+        observed_price_cents_per_kwh: index === 0 ? "11.10" : "12.20",
+        unit: "cents/kWh" as const,
+        role: "observed" as const,
+      };
+    });
+    const payload = history("VA", "11.10");
+    payload.points = points;
+    payload.returned_row_count = 306;
+    payload.extract_row_count = 306;
+    payload.earliest_period = points[0].period;
+    payload.latest_period = points[305].period;
+    const client: ApiClient = {
+      getStatus: () => new Promise(() => undefined),
+      getEvaluationSummary: () => Promise.resolve(summary),
+      getHistory: () => Promise.resolve(payload),
+      getHoldout: () => Promise.resolve(holdout("VA", "13.25", true)),
+      getHoldoutCases: () => new Promise(() => undefined),
+      postFinanceScenarios: () => new Promise(() => undefined),
+      getPjmCatalog: () => new Promise(() => undefined),
+      getPjmScreen: () => new Promise(() => undefined),
+    };
+    renderElectricity(client);
+    const region = await screen.findByRole("region", { name: "Observed price table" });
+    expect(region.className).toContain("max-h-96");
+    expect(region.className).toContain("overflow-auto");
+    expect(region).toHaveAttribute("tabindex", "0");
+    expect(screen.getByText(/Scroll to read all 306 observed months/)).toBeInTheDocument();
+    expect(within(region).getAllByRole("row")).toHaveLength(307);
+    expect(within(region).getByRole("rowheader", { name: "2001-01" })).toBeInTheDocument();
+    expect(within(region).getByRole("rowheader", { name: "2026-06" })).toBeInTheDocument();
+    expect(within(region).getByText("11.10")).toBeInTheDocument();
+    expect(within(region).getAllByText("12.20")).toHaveLength(305);
+    expect(document.documentElement.scrollHeight).toBeLessThan(15000);
+  });
+
   it("rejects a holdout payload whose axis is not target month", async () => {
     const fetchImpl = async () =>
       new Response(

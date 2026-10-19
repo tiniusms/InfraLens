@@ -1,4 +1,5 @@
 import type { EvaluationSummary } from "../api/types";
+import { ScrollRegion } from "../components/charts/ScrollRegion";
 import { shareToPercentText, signedIntegerText } from "../lib/format";
 
 const STATE_ORDER = ["VA", "PA", "OH", "MD", "NJ"] as const;
@@ -63,8 +64,8 @@ export function EvaluationFinding({ evaluation }: EvaluationFindingProps) {
         <p className="mt-2 max-w-[68ch] text-[15px] leading-6 text-ink-muted">
           State MAE is descriptive. It sits outside the primary gate. Units are {units.mae}.
         </p>
-        <div className="mt-4 overflow-x-auto" role="region" aria-label="State MAE">
-          <table className="w-full border-collapse text-left text-[15px] leading-6">
+        <ScrollRegion label="State MAE">
+          <table className="w-full min-w-[36rem] border-collapse text-left text-[15px] leading-6 whitespace-nowrap">
             <thead className="bg-paper-inset text-[12px] leading-4 font-semibold tracking-[0.04em] text-ink-muted uppercase">
               <tr>
                 <th className="px-3 py-2 font-semibold">State</th>
@@ -89,7 +90,7 @@ export function EvaluationFinding({ evaluation }: EvaluationFindingProps) {
               })}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
       </div>
 
       <p className="text-[12px] leading-4 text-ink-muted">

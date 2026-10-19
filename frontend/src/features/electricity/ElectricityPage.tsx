@@ -199,7 +199,11 @@ function HistoryReady({ history }: { history: HistoryResponse }) {
         </div>
       </dl>
       <p className="max-w-[68ch] text-[15px] leading-6 text-ink">{history.limitations}</p>
-      <ScrollRegion label="Observed price table">
+      <ScrollRegion
+        label="Observed price table"
+        maxHeightClass="max-h-96"
+        cue={`Scroll to read all ${rows.length} observed months and every column. Every returned row stays in this table.`}
+      >
         <table className="w-full min-w-[40rem] border-collapse text-left text-[15px] leading-6 whitespace-nowrap">
           <caption className="sr-only">Observed commercial prices by month</caption>
           <thead className="bg-paper-inset text-[12px] leading-4 font-semibold tracking-[0.04em] text-ink-muted uppercase">

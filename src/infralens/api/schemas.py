@@ -296,7 +296,19 @@ class FinanceScenarioInput(BaseModel):
     case_key: HoldoutCaseKey | None = None
 
 
+# The studio submits one baseline and one comparison. A single scenario remains valid.
+# Two is the conservative maximum that still matches that contract.
+FINANCE_MAX_SCENARIOS = 2
+# A normal two-scenario body is under 1 KB. 8 KiB allows long exact decimal strings
+# without accepting an unbounded POST. The ASGI middleware enforces this byte count
+# before JSON parsing. It is defense in depth: a public gateway must still limit
+# request size, throttling, concurrency, and timeouts.
+FINANCE_MAX_BODY_BYTES = 8192
+
+
 class FinanceRequest(BaseModel):
+    """At most two scenarios. The studio sends a baseline and a comparison."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
 
     it_capacity_mw: str
@@ -304,7 +316,7 @@ class FinanceRequest(BaseModel):
     utilization: str
     operating_hours_per_year: str = "8760"
     baseline_name: str
-    scenarios: list[FinanceScenarioInput] = Field(min_length=1)
+    scenarios: list[FinanceScenarioInput] = Field(min_length=1, max_length=FINANCE_MAX_SCENARIOS)
 
 
 class FinanceScenarioResult(BaseModel):

@@ -203,6 +203,7 @@ export function FinancePage() {
             nameId="baseline_name"
             priceId="baseline_price"
             caseId="baseline_case"
+            priceHint="12 means 12 cents per kilowatt-hour, not 0.12 dollars per kilowatt-hour."
             draft={draft.baseline}
             cases={availableCases}
             ridgeAvailable={ridgeAvailable}
@@ -214,6 +215,7 @@ export function FinancePage() {
             nameId="comparison_name"
             priceId="comparison_price"
             caseId="comparison_case"
+            priceHint="10 means 10 cents per kilowatt-hour, not 0.10 dollars per kilowatt-hour."
             draft={draft.comparison}
             cases={availableCases}
             ridgeAvailable={ridgeAvailable}
@@ -317,6 +319,7 @@ function ScenarioEditor({
   nameId,
   priceId,
   caseId,
+  priceHint,
   draft,
   cases,
   ridgeAvailable,
@@ -327,6 +330,7 @@ function ScenarioEditor({
   nameId: string;
   priceId: string;
   caseId: string;
+  priceHint: string;
   draft: ScenarioDraft;
   cases: readonly HoldoutCase[];
   ridgeAvailable: boolean;
@@ -384,7 +388,7 @@ function ScenarioEditor({
         <Field
           id={priceId}
           label="Energy price, cents/kWh"
-          hint="12 means 12 cents per kilowatt-hour, not 0.12 dollars per kilowatt-hour."
+          hint={priceHint}
           value={draft.priceCents}
           error={errors[priceId]}
           onChange={(value) => onChange({ priceCents: value })}

@@ -6,6 +6,11 @@ Run from a checkout with the optional api extra installed:
 
 Set ``INFRALENS_CORS_ORIGINS`` to a comma-separated allowlist. A wildcard
 origin is rejected. ``INFRALENS_ROOT`` overrides the repository root.
+
+The finance POST is limited to two scenarios and 8192 body bytes before JSON
+parsing. Those checks are defense in depth. A public gateway must still enforce
+request size, throttling, concurrency, and timeouts. This app does not trust
+forwarded headers.
 """
 
 from __future__ import annotations
@@ -18,6 +23,7 @@ from typing import Annotated
 from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 
+from infralens.api.body_limit import FinanceBodyLimit
 from infralens.api.errors import register_exception_handlers
 from infralens.api.readers import (
     Runtime,
@@ -75,6 +81,7 @@ def create_app(
     app.state.runtime = Runtime(root=_resolve_root(root))
     register_exception_handlers(app)
     app.include_router(_router())
+    app.add_middleware(FinanceBodyLimit)
     origins = _resolve_cors(cors_origins)
     if origins:
         app.add_middleware(
