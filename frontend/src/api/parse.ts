@@ -14,6 +14,8 @@ import type {
   HoldoutCasesResponse,
   HoldoutPoint,
   HoldoutResponse,
+  PjmCatalogResponse,
+  PjmScreenResponse,
   SeriesValue,
   StateMae,
   StatusResponse,
@@ -513,5 +515,168 @@ export function parseFinance(value: unknown): FinanceResponse {
     closed_holdout_claim_boundary: boundary,
     closed_holdout_limitation: nullableText(value.closed_holdout_limitation, "Closed holdout limitation"),
     scenarios: value.scenarios.map(parseFinanceScenario),
+  };
+}
+
+function isCalendarDate(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) {
+    return false;
+  }
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const utc = new Date(Date.UTC(year, month - 1, day));
+  return utc.getUTCFullYear() === year && utc.getUTCMonth() === month - 1 && utc.getUTCDate() === day;
+}
+
+function finiteOrNull(value: unknown, key: string): number | null {
+  if (value === null) {
+    return null;
+  }
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new ContractError(`Field ${key} is not a finite number or null.`);
+  }
+  return value;
+}
+
+function pjmInteger(value: unknown, key: string): number {
+  if (typeof value !== "number" || !Number.isInteger(value)) {
+    throw new ContractError(`Field ${key} is not an integer.`);
+  }
+  return value;
+}
+
+function dateOrNull(value: unknown, key: string): string | null {
+  if (value === null) {
+    return null;
+  }
+  if (typeof value !== "string" || !isCalendarDate(value)) {
+    throw new ContractError(`Field ${key} is not a calendar date or null.`);
+  }
+  return value;
+}
+
+function stringList(value: unknown, key: string): string[] {
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    throw new ContractError(`Field ${key} is not a string list.`);
+  }
+  return value;
+}
+
+export function parsePjmCatalog(value: unknown): PjmCatalogResponse {
+  if (!isRecord(value) || value.claim_boundary !== "pjm_zonal_planning") {
+    throw new ContractError("PJM catalog is incomplete.");
+  }
+  if (value.measure_unit !== "MW" || value.cagr_unit !== "decimal_per_year") {
+    throw new ContractError("PJM catalog units are unexpected.");
+  }
+  const zones = stringList(value.zones, "zones");
+  const forecastYears = value.forecast_years;
+  if (!Array.isArray(forecastYears) || forecastYears.length === 0 || zones.length === 0) {
+    throw new ContractError("PJM catalog has no zones or forecast years.");
+  }
+  if (new Set(zones).size !== zones.length || zones.some((zone) => zone.trim() === "")) {
+    throw new ContractError("PJM catalog zones are inconsistent.");
+  }
+  const years = forecastYears.map((year) => pjmInteger(year, "forecast_years"));
+  const sorted = [...years].sort((left, right) => left - right);
+  if (new Set(years).size !== years.length || years.some((year, index) => year !== sorted[index])) {
+    throw new ContractError("PJM catalog forecast years are inconsistent.");
+  }
+  const forecastYearMin = pjmInteger(value.forecast_year_min, "forecast_year_min");
+  const forecastYearMax = pjmInteger(value.forecast_year_max, "forecast_year_max");
+  if (forecastYearMin !== years[0] || forecastYearMax !== years[years.length - 1]) {
+    throw new ContractError("PJM catalog year bounds do not match the year list.");
+  }
+  return {
+    claim_boundary: "pjm_zonal_planning",
+    zones,
+    forecast_year_min: forecastYearMin,
+    forecast_year_max: forecastYearMax,
+    forecast_years: years,
+    geographic_warning: requiredString(value, "geographic_warning"),
+    large_load_warning: requiredString(value, "large_load_warning"),
+    measure_unit: "MW",
+    cagr_unit: "decimal_per_year",
+  };
+}
+
+export function parsePjmScreen(value: unknown): PjmScreenResponse {
+  if (!isRecord(value) || value.claim_boundary !== "pjm_zonal_planning" || typeof value.available !== "boolean") {
+    throw new ContractError("PJM screen is incomplete.");
+  }
+  if (value.measure_unit !== "MW" || value.cagr_unit !== "decimal_per_year") {
+    throw new ContractError("PJM screen units are unexpected.");
+  }
+  const summerPeak = finiteOrNull(value.summer_peak_mw, "summer_peak_mw");
+  const cagr = finiteOrNull(value.summer_peak_10yr_cagr, "summer_peak_10yr_cagr");
+  const cagrPercent = finiteOrNull(value.cagr_percent_per_year, "cagr_percent_per_year");
+  const above = finiteOrNull(value.above_embedded_mw, "above_embedded_mw");
+  const total = finiteOrNull(value.total_associated_mw, "total_associated_mw");
+  const vintage = value.ltlf_vintage_year === null ? null : pjmInteger(value.ltlf_vintage_year, "ltlf_vintage_year");
+  const sourceTables = stringList(value.source_tables, "source_tables");
+  const sourceFiles = stringList(value.source_files, "source_files");
+  const sourceUrls = stringList(value.source_urls, "source_urls");
+  const retrievedAt = stringList(value.retrieved_at, "retrieved_at");
+  const measures = [summerPeak, above, total];
+  if ((cagr === null) !== (cagrPercent === null)) {
+    throw new ContractError("PJM CAGR fields are inconsistent.");
+  }
+  if (value.available) {
+    if (measures.some((item) => item === null) || vintage === null) {
+      throw new ContractError("An available PJM vintage is missing a published measure.");
+    }
+    const width = sourceTables.length;
+    if (
+      width === 0 ||
+      sourceFiles.length !== width ||
+      sourceUrls.length !== width ||
+      retrievedAt.length !== width
+    ) {
+      throw new ContractError("PJM source lists do not match.");
+    }
+  } else if (measures.some((item) => item !== null) || cagr !== null || vintage !== null) {
+    throw new ContractError("An unpublished PJM screen included measures.");
+  }
+  const asOfDate = dateOrNull(value.as_of_date, "as_of_date");
+  if (asOfDate === null) {
+    throw new ContractError("PJM as_of_date is missing.");
+  }
+  const originalRelease = dateOrNull(value.original_release_date, "original_release_date");
+  const vintageAvailable = dateOrNull(value.vintage_available_at, "vintage_available_at");
+  if (value.available && (originalRelease === null || vintageAvailable === null)) {
+    throw new ContractError("An available PJM vintage is missing a publication date.");
+  }
+  const unavailable = nullableText(value.unavailable_reason, "Unavailable reason");
+  if (!value.available && (unavailable === null || unavailable.trim() === "")) {
+    throw new ContractError("An unpublished PJM screen has no reason.");
+  }
+  return {
+    claim_boundary: "pjm_zonal_planning",
+    available: value.available,
+    pjm_zone: requiredString(value, "pjm_zone"),
+    forecast_year: pjmInteger(value.forecast_year, "forecast_year"),
+    as_of_date: asOfDate,
+    ltlf_vintage_year: vintage,
+    summer_peak_mw: summerPeak,
+    summer_peak_10yr_cagr: cagr,
+    cagr_percent_per_year: cagrPercent,
+    cagr_percent_label: requiredString(value, "cagr_percent_label"),
+    above_embedded_mw: above,
+    total_associated_mw: total,
+    original_release_date: originalRelease,
+    revision_date: dateOrNull(value.revision_date, "revision_date"),
+    vintage_available_at: vintageAvailable,
+    source_tables: sourceTables,
+    source_files: sourceFiles,
+    source_urls: sourceUrls,
+    retrieved_at: retrievedAt,
+    retrieval_note: requiredString(value, "retrieval_note"),
+    unavailable_reason: unavailable,
+    geographic_warning: requiredString(value, "geographic_warning"),
+    large_load_warning: requiredString(value, "large_load_warning"),
+    measure_unit: "MW",
+    cagr_unit: "decimal_per_year",
   };
 }

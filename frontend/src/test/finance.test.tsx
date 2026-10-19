@@ -115,6 +115,8 @@ function clientWith(
     getHoldout: () => new Promise(() => undefined),
     getHoldoutCases: holdout,
     postFinanceScenarios: post,
+    getPjmCatalog: () => new Promise(() => undefined),
+    getPjmScreen: () => new Promise(() => undefined),
   };
 }
 

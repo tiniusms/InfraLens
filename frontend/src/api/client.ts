@@ -5,6 +5,8 @@ import {
   parseHistory,
   parseHoldout,
   parseHoldoutCases,
+  parsePjmCatalog,
+  parsePjmScreen,
   parseStatus,
 } from "./parse";
 import type {
@@ -14,6 +16,8 @@ import type {
   HistoryResponse,
   HoldoutCasesResponse,
   HoldoutResponse,
+  PjmCatalogResponse,
+  PjmScreenResponse,
   StatusResponse,
 } from "./types";
 
@@ -48,6 +52,8 @@ export type ApiClient = {
   getHoldout: (stateId: string, signal?: AbortSignal) => Promise<HoldoutResponse>;
   getHoldoutCases: (signal?: AbortSignal) => Promise<HoldoutCasesResponse>;
   postFinanceScenarios: (body: FinanceRequest, signal?: AbortSignal) => Promise<FinanceResponse>;
+  getPjmCatalog: (signal?: AbortSignal) => Promise<PjmCatalogResponse>;
+  getPjmScreen: (zone: string, forecastYear: number, asOf: string, signal?: AbortSignal) => Promise<PjmScreenResponse>;
 };
 
 function apiBaseUrl(): string {
@@ -144,6 +150,15 @@ export function createClient(options?: { baseUrl?: string; fetchImpl?: typeof fe
       requestJson(fetchImpl, baseUrl, "/api/v1/eia/holdout/cases", parseHoldoutCases, signal),
     postFinanceScenarios: (body, signal) =>
       requestJson(fetchImpl, baseUrl, "/api/v1/finance/scenarios", parseFinance, signal, body),
+    getPjmCatalog: (signal) => requestJson(fetchImpl, baseUrl, "/api/v1/pjm/catalog", parsePjmCatalog, signal),
+    getPjmScreen: (zone, forecastYear, asOf, signal) => {
+      const params = new URLSearchParams({
+        pjm_zone: zone,
+        forecast_year: String(forecastYear),
+        as_of: asOf,
+      });
+      return requestJson(fetchImpl, baseUrl, `/api/v1/pjm/screen?${params.toString()}`, parsePjmScreen, signal);
+    },
   };
 }
 

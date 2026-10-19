@@ -149,6 +149,8 @@ describe("electricity intelligence", () => {
       },
       getHoldoutCases: () => new Promise(() => undefined),
       postFinanceScenarios: () => new Promise(() => undefined),
+      getPjmCatalog: () => new Promise(() => undefined),
+      getPjmScreen: () => new Promise(() => undefined),
     };
     renderElectricity(client);
 
@@ -192,6 +194,8 @@ describe("electricity intelligence", () => {
       getHoldout: (state) => Promise.resolve(holdout(state, "13.25", true)),
       getHoldoutCases: () => new Promise(() => undefined),
       postFinanceScenarios: () => new Promise(() => undefined),
+      getPjmCatalog: () => new Promise(() => undefined),
+      getPjmScreen: () => new Promise(() => undefined),
     };
     renderElectricity(client);
 
@@ -260,6 +264,8 @@ describe("electricity intelligence", () => {
       getHoldout: (state) => Promise.resolve(holdout(state, "13.25", true)),
       getHoldoutCases: () => new Promise(() => undefined),
       postFinanceScenarios: () => new Promise(() => undefined),
+      getPjmCatalog: () => new Promise(() => undefined),
+      getPjmScreen: () => new Promise(() => undefined),
     };
     renderElectricity(client);
     expect(await screen.findByRole("heading", { name: "Price history unavailable" })).toBeInTheDocument();
@@ -278,6 +284,8 @@ describe("electricity intelligence", () => {
         ),
       getHoldoutCases: () => new Promise(() => undefined),
       postFinanceScenarios: () => new Promise(() => undefined),
+      getPjmCatalog: () => new Promise(() => undefined),
+      getPjmScreen: () => new Promise(() => undefined),
     };
     renderElectricity(client);
     expect(await screen.findByRole("heading", { name: "Closed holdout unavailable" })).toBeInTheDocument();
@@ -294,6 +302,8 @@ describe("electricity intelligence", () => {
       getHoldout: () => Promise.reject(error),
       getHoldoutCases: () => new Promise(() => undefined),
       postFinanceScenarios: () => new Promise(() => undefined),
+      getPjmCatalog: () => new Promise(() => undefined),
+      getPjmScreen: () => new Promise(() => undefined),
     };
     renderElectricity(client);
     expect(await screen.findAllByRole("heading", { name: "Connection unavailable" })).toHaveLength(3);

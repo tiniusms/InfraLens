@@ -74,6 +74,8 @@ function readyClient(): ApiClient {
     getHoldout: () => new Promise(() => undefined),
     getHoldoutCases: () => new Promise(() => undefined),
     postFinanceScenarios: () => new Promise(() => undefined),
+    getPjmCatalog: () => new Promise(() => undefined),
+    getPjmScreen: () => new Promise(() => undefined),
   };
 }
 
@@ -85,6 +87,8 @@ function failedClient(error: ApiClientError): ApiClient {
     getHoldout: () => Promise.reject(error),
     getHoldoutCases: () => Promise.reject(error),
     postFinanceScenarios: () => Promise.reject(error),
+    getPjmCatalog: () => Promise.reject(error),
+    getPjmScreen: () => Promise.reject(error),
   };
 }
 

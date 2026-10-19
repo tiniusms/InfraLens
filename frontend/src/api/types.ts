@@ -182,7 +182,47 @@ export type FinanceResponse = {
   closed_holdout_claim_boundary: "closed_historical_evaluation" | null;
   closed_holdout_limitation: string | null;
   scenarios: FinanceScenarioResult[];
-};;
+};
+
+export type PjmCatalogResponse = {
+  claim_boundary: "pjm_zonal_planning";
+  zones: string[];
+  forecast_year_min: number;
+  forecast_year_max: number;
+  forecast_years: number[];
+  geographic_warning: string;
+  large_load_warning: string;
+  measure_unit: "MW";
+  cagr_unit: "decimal_per_year";
+};
+
+export type PjmScreenResponse = {
+  claim_boundary: "pjm_zonal_planning";
+  available: boolean;
+  pjm_zone: string;
+  forecast_year: number;
+  as_of_date: string;
+  ltlf_vintage_year: number | null;
+  summer_peak_mw: number | null;
+  summer_peak_10yr_cagr: number | null;
+  cagr_percent_per_year: number | null;
+  cagr_percent_label: string;
+  above_embedded_mw: number | null;
+  total_associated_mw: number | null;
+  original_release_date: string | null;
+  revision_date: string | null;
+  vintage_available_at: string | null;
+  source_tables: string[];
+  source_files: string[];
+  source_urls: string[];
+  retrieved_at: string[];
+  retrieval_note: string;
+  unavailable_reason: string | null;
+  geographic_warning: string;
+  large_load_warning: string;
+  measure_unit: "MW";
+  cagr_unit: "decimal_per_year";
+};
 
 export type EvaluationSummary = {
   claim_boundary: "closed_historical_evaluation";
