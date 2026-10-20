@@ -382,6 +382,49 @@ def test_malformed_or_empty_host_entries_are_rejected(
         create_app(root=_portable_root(tmp_path), cors_origins=[])
 
 
+def _private_ci():
+    import importlib.util
+
+    path = _ROOT / "deploy" / "ci_private_image.py"
+    spec = importlib.util.spec_from_file_location("ci_private_image", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_cloudflared_probe_rejects_the_old_grace_period_placement() -> None:
+    checker = _private_ci()
+    missing = (
+        '"cloudflared tunnel run" requires the ID or name of the tunnel to run '
+        "as the last command line argument or in the configuration file.\n"
+        "See 'cloudflared tunnel run --help'.\n"
+    )
+    rendered = "Incorrect Usage: flag provided but not defined: -grace-period\n"
+    assert checker.classify_cloudflared_output(missing, 255) == "missing-credentials"
+    assert checker.classify_cloudflared_output(f"Incorrect Usage: {missing}", 1) == "missing-credentials"
+    assert checker.classify_cloudflared_output(rendered, 1) == "unknown-flag"
+    assert checker.classify_cloudflared_output("Incorrect Usage: something else\n", 1) == "unknown-flag"
+    assert checker.classify_cloudflared_output(missing, 0) == "unexpected"
+    assert checker.classify_cloudflared_output("connection refused", 1) == "unexpected"
+    command = checker.production_cloudflared_command()
+    assert command == [
+        "/usr/local/bin/cloudflared",
+        "tunnel",
+        "--no-autoupdate",
+        "run",
+    ]
+    assert command[command.index("run") + 1 :] == []
+    assert "--grace-period" not in command
+    assert checker._REJECTED_PLACEMENT == [
+        "--no-autoupdate",
+        "tunnel",
+        "run",
+        "--grace-period",
+        "10s",
+    ]
+
+
 def test_private_image_pin_is_separate_from_the_portable_target() -> None:
     text = _DOCKERFILE.read_text(encoding="utf-8")
     portable, private = text.split("FROM portable AS private", 1)
