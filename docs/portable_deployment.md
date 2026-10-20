@@ -95,7 +95,9 @@ Rollback is the previous Render deploy of this service. There is no schema to mi
 
 `/bin/sh` in the Debian bookworm image is dash. dash can wait for one pid or for all jobs. It does not provide bash `wait -n`, so a shell loop cannot reliably reap whichever child exits first without leaving a zombie. `start_private.sh` only execs `deploy/supervise_private.py`.
 
-The supervisor starts Uvicorn and `cloudflared`. `SIGTERM` or `SIGINT` is forwarded. A requested stop exits 0 after the children are reaped. If either child exits on its own, the supervisor signals the other, waits, and exits 1. A child that ignores `SIGTERM` is killed after the grace period. `cloudflared` is started with `--grace-period 10s` and `--no-autoupdate`. The supervisor's own grace is 15 seconds, inside Render's default 30-second shutdown window.
+The supervisor starts Uvicorn and `cloudflared`. `SIGTERM` or `SIGINT` is forwarded. A requested stop exits 0 after the children are reaped. If either child exits on its own, the supervisor signals the other, waits, and exits 1. A child that ignores `SIGTERM` is killed after the supervisor's 15-second grace, inside Render's default 30-second shutdown window.
+
+The connector command is `cloudflared tunnel --no-autoupdate run`. On the pinned 2026.10.1 binary, `--no-autoupdate` is a tunnel-command flag and belongs before `run`. `--grace-period` is the same kind of flag. Placing it after `run` is what Render logged as `flag provided but not defined: -grace-period`. The startup command does not pass `--grace-period`. cloudflared's built-in default grace is 30 seconds; the supervisor sends `SIGKILL` at 15 seconds, and that is the shutdown bound this service uses. `TUNNEL_TOKEN` stays in the environment. The command does not pass `--token`, a tunnel ID, or a hostname.
 
 `--timeout-keep-alive 5` closes an idle HTTP connection. It is not a request-duration limit.
 
@@ -135,7 +137,7 @@ Dependencies are the pins in `requirements-api.txt`, installed with `pip --no-de
 
 `.dockerignore` keeps `data/`, virtualenvs, `frontend/`, `node_modules`, `dist`, caches, `.env*`, parquet, xlsx, and png files out of the build context. Markdown other than `README.md` is also excluded. The summary JSON is not markdown and is copied by name.
 
-CI builds `--target portable`, runs the existing smoke checks, then builds `--target private` and runs `deploy/ci_private_image.py`. That second step checks the ELF machine, the version string, and a token-free startup. It does not receive `TUNNEL_TOKEN` and uses `--network none`.
+CI builds `--target portable`, runs the existing smoke checks, then builds `--target private` and runs `deploy/ci_private_image.py`. That second step checks the ELF machine, the version string, a token-free startup, and the pinned binary's `tunnel --no-autoupdate run` syntax. The syntax probe expects the missing-tunnel message. A nonzero exit by itself is not enough: an unknown flag, including `--grace-period` after `run`, fails the check. The probe does not receive `TUNNEL_TOKEN` and uses `--network none`.
 
 ## Memory and cost still to measure
 

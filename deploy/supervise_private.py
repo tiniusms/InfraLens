@@ -26,7 +26,13 @@ _CLOUDFLARED = "/usr/local/bin/cloudflared"
 
 
 def production_commands(port: str) -> tuple[list[str], list[str]]:
-    """Uvicorn matches ``start_api.sh``. cloudflared has no ``--token`` argument."""
+    """Uvicorn matches ``start_api.sh``. cloudflared reads ``TUNNEL_TOKEN`` itself.
+
+    On cloudflared 2026.10.1, ``--no-autoupdate`` is a tunnel-command flag and
+    belongs before ``run``. ``--grace-period`` is not a ``run`` flag; placing
+    it there exits with ``flag provided but not defined``. The supervisor's
+    own grace bounds shutdown, so the startup command does not pass it.
+    """
 
     uvicorn = [
         sys.executable,
@@ -45,11 +51,9 @@ def production_commands(port: str) -> tuple[list[str], list[str]]:
     ]
     cloudflared = [
         _CLOUDFLARED,
-        "--no-autoupdate",
         "tunnel",
+        "--no-autoupdate",
         "run",
-        "--grace-period",
-        "10s",
     ]
     return uvicorn, cloudflared
 

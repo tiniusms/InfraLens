@@ -136,8 +136,16 @@ def test_production_command_keeps_the_token_out_of_argv() -> None:
     assert "--no-proxy-headers" in uvicorn
     assert "--limit-concurrency" in uvicorn and "16" in uvicorn
     assert "--timeout-keep-alive" in uvicorn and "5" in uvicorn
-    assert cloudflared[0] == "/usr/local/bin/cloudflared"
-    assert "--no-autoupdate" in cloudflared
+    assert cloudflared == [
+        "/usr/local/bin/cloudflared",
+        "tunnel",
+        "--no-autoupdate",
+        "run",
+    ]
+    run_at = cloudflared.index("run")
+    assert cloudflared[run_at + 1 :] == []
+    assert "--grace-period" not in cloudflared
+    assert "10s" not in cloudflared
     assert "--token" not in cloudflared
     assert "TUNNEL_TOKEN" not in joined
     script = (_ROOT / "deploy" / "start_private.sh").read_text(encoding="utf-8")
