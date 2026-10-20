@@ -47,6 +47,12 @@ models/*.pkl
 models/*.joblib
 .ipynb_checkpoints/
 
+# Frontend
+node_modules/
+.vite/
+coverage/
+*.tsbuildinfo
+
 # OS / editor
 .DS_Store
 .idea/
