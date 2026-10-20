@@ -1,0 +1,38 @@
+name: Portable image
+
+# Build the portable image and exercise it on a GitHub-hosted Linux runner.
+# The job pulls the pinned Python base image. It does not download EIA or PJM
+# data, score the holdout, push an image, or read a repository secret.
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: portable-image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out pull request files
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Build the portable image
+        run: docker build --pull -t infralens-api:ci .
+
+      - name: Exercise the image
+        run: python3 deploy/ci_portable_image.py
+
+      - name: Remove the runner container
+        if: always()
+        run: docker rm -f infralens-api-ci || true

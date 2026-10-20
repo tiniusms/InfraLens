@@ -203,3 +203,93 @@ def test_host_checks_stay_off_without_render_and_reject_a_wildcard(
     monkeypatch.delenv("RENDER_EXTERNAL_HOSTNAME", raising=False)
     with pytest.raises(ValueError, match="RENDER_EXTERNAL_HOSTNAME"):
         create_app(root=root, cors_origins=[])
+
+
+def _ci_module():
+    import importlib.util
+
+    path = _ROOT / "deploy" / "ci_portable_image.py"
+    spec = importlib.util.spec_from_file_location("ci_portable_image", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_portable_image_workflow_is_local_and_read_only() -> None:
+    workflow = (_ROOT / ".github" / "workflows" / "portable-image.yml").read_text(encoding="utf-8")
+    script = (_ROOT / "deploy" / "ci_portable_image.py").read_text(encoding="utf-8")
+    assert "runs-on: ubuntu-latest" in workflow
+    assert "timeout-minutes: 20" in workflow
+    assert "contents: read" in workflow
+    assert "contents: write" not in workflow
+    assert "persist-credentials: false" in workflow
+    assert "docker build --pull -t infralens-api:ci ." in workflow
+    assert "python3 deploy/ci_portable_image.py" in workflow
+    assert "if: always()" in workflow
+    assert "docker rm -f infralens-api-ci" in workflow
+    combined = workflow + "\n" + script
+    for forbidden in (
+        "docker push",
+        "docker login",
+        "${{ secrets",
+        "final_holdout",
+        "eia.gov",
+        "pjm.com",
+        "scikit-learn",
+        "/Users/",
+    ):
+        assert forbidden not in combined
+    assert "EIA_API_KEY=" not in workflow
+    assert "10001:10001" in script
+    assert "/app/deploy/start_api.sh" in script
+    assert "portable_summary" in script
+    assert "455520000" in script
+    assert "54662400" in script
+    assert "45552000" in script
+    assert "-9110400" in script
+    assert "request_too_large" in script
+    assert "artifact_missing" in script
+
+
+def test_image_checks_match_the_portable_api(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import hashlib
+    import json
+
+    monkeypatch.delenv("RENDER", raising=False)
+    monkeypatch.delenv("RENDER_EXTERNAL_HOSTNAME", raising=False)
+    monkeypatch.delenv("INFRALENS_ALLOWED_HOSTS", raising=False)
+    checker = _ci_module()
+    digest = hashlib.sha256((_ROOT / "docs" / "final_eia_holdout_oneshot.json").read_bytes()).hexdigest()
+    assert checker.PINNED_SUMMARY_SHA256 == digest
+    app = create_app(root=_portable_root(tmp_path), cors_origins=[])
+    with TestClient(app) as client:
+        status = client.get("/api/v1/status")
+        summary = client.get("/api/v1/evaluation/summary")
+        finance = client.post("/api/v1/finance/scenarios", json=checker.finance_payload())
+        history = client.get("/api/v1/eia/history")
+        holdout = client.get("/api/v1/eia/holdout")
+        cases = client.get("/api/v1/eia/holdout/cases")
+        screen = client.get("/api/v1/pjm/screen", params={"pjm_zone": "AEP", "forecast_year": 2026, "as_of": "2026-02-06"})
+        catalog = client.get("/api/v1/pjm/catalog")
+        oversized = client.post("/api/v1/finance/scenarios", content=b"x" * 8193, headers={"content-type": "application/json"})
+        three = checker.finance_payload()
+        three["scenarios"] = [
+            *three["scenarios"],
+            {"name": "extra", "source": "typed_hypothetical", "price_cents_per_kwh": "11"},
+        ]
+        rejected = client.post("/api/v1/finance/scenarios", json=three)
+    assert status.status_code == 200
+    checker.check_status(status.json())
+    assert summary.status_code == 200
+    checker.check_evaluation(summary.json())
+    assert finance.status_code == 200
+    checker.check_finance(finance.json())
+    checker.check_missing(history.status_code, history.json(), "price_history")
+    checker.check_missing(holdout.status_code, holdout.json(), "holdout_cases")
+    checker.check_missing(cases.status_code, cases.json(), "holdout_cases")
+    checker.check_missing(screen.status_code, screen.json(), "pjm_2025_tables")
+    assert catalog.status_code == 200
+    checker.check_catalog(catalog.json())
+    checker.check_too_large(oversized.status_code, oversized.json())
+    checker.check_three_scenarios(rejected.status_code, json.loads(rejected.text))
