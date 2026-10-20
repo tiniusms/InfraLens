@@ -1,8 +1,10 @@
 name: Portable image
 
 # Build the portable image and exercise it on a GitHub-hosted Linux runner.
-# The job pulls the pinned Python base image. It does not download EIA or PJM
-# data, score the holdout, push an image, or read a repository secret.
+# Then build the private target, which downloads the pinned cloudflared binary
+# and checks its checksum. The private container is started only without a
+# tunnel token, on a network that cannot reach Cloudflare. The job does not
+# download EIA or PJM data, score the holdout, push an image, or read a secret.
 
 on:
   pull_request:
@@ -28,10 +30,16 @@ jobs:
           persist-credentials: false
 
       - name: Build the portable image
-        run: docker build --pull -t infralens-api:ci .
+        run: docker build --pull --target portable -t infralens-api:ci .
 
       - name: Exercise the image
         run: python3 deploy/ci_portable_image.py
+
+      - name: Build the private image
+        run: docker build --target private -t infralens-api:private .
+
+      - name: Check the private image without a tunnel
+        run: python3 deploy/ci_private_image.py
 
       - name: Remove the runner container
         if: always()

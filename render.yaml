@@ -1,18 +1,41 @@
-# Proposed Render web service. Applying this blueprint creates a service and
-# is a manual step. This file does not provision anything by itself.
-# autoDeploy is off so a git push does not publish the API.
+# Proposed private Render service. Applying this blueprint creates a service
+# and is a manual step. This file does not provision anything by itself.
+# There is one service. It is not a public web service and has no onrender.com
+# hostname. Public HTTPS is a Cloudflare Tunnel, configured outside this file.
+# autoDeployTrigger off is the current switch. autoDeploy false is the
+# deprecated equivalent; the trigger wins if both are present.
 services:
-  - type: web
+  - type: pserv
     name: infralens-api
     runtime: docker
+    plan: 0.5c-512mb
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    healthCheckPath: /api/v1/status
+    dockerCommand: /app/deploy/start_private.sh
+    autoDeployTrigger: off
     autoDeploy: false
     envVars:
       - key: INFRALENS_ROOT
         value: /app
+      # Private services discover the listening port from PORT. The blueprint
+      # sets 10000, which is also the tunnel origin port. Uvicorn binds
+      # 0.0.0.0 so Render's TCP probe can connect. cloudflared uses 127.0.0.1
+      # on that same port. Private services use that TCP check. Do not add an
+      # HTTP health path; that field belongs to web services.
+      - key: PORT
+        value: "10000"
+      # Application request bound. This is not Uvicorn keep-alive and it is
+      # not Cloudflare's proxy read timeout.
+      - key: INFRALENS_REQUEST_TIMEOUT_SECONDS
+        value: "30"
+      # Dashboard-only. Production browser origin, for example
+      # https://YOUR-PROJECT.vercel.app. No wildcard.
       - key: INFRALENS_CORS_ORIGINS
         sync: false
+      # Dashboard-only. The Cloudflare hostname, for example api.example.com.
+      # No wildcard. Do not put a Render web hostname here.
       - key: INFRALENS_ALLOWED_HOSTS
+        sync: false
+      # Dashboard-only tunnel credential. Never commit a value.
+      - key: TUNNEL_TOKEN
         sync: false

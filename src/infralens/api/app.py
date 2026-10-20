@@ -12,15 +12,21 @@ parsing. Those checks are defense in depth. A public gateway must still enforce
 request size, throttling, concurrency, and timeouts. This app does not trust
 forwarded headers.
 
-Host checks turn on when ``RENDER=true`` or ``INFRALENS_ALLOWED_HOSTS`` is set.
-The allowed names are ``localhost``, ``127.0.0.1``, ``RENDER_EXTERNAL_HOSTNAME``,
-and that explicit list. A wildcard host is rejected. See
-``docs/portable_deployment.md``.
+Host checks turn on when ``RENDER=true``, ``RENDER_EXTERNAL_HOSTNAME`` is
+set, or ``INFRALENS_ALLOWED_HOSTS`` is set. The allowed names are ``localhost``,
+``127.0.0.1``, the Render hostname when one exists, and that explicit list.
+A private Render service has no ``RENDER_EXTERNAL_HOSTNAME``; it must set
+``INFRALENS_ALLOWED_HOSTS`` to the Cloudflare hostname. A wildcard or malformed
+host is rejected. See ``docs/portable_deployment.md``.
+
+``INFRALENS_REQUEST_TIMEOUT_SECONDS``, when set, bounds one HTTP request.
+``--timeout-keep-alive`` does not.
 """
 
 from __future__ import annotations
 
 import os
+import re
 from datetime import date
 from pathlib import Path
 from typing import Annotated
@@ -31,6 +37,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from infralens.api.body_limit import FinanceBodyLimit
 from infralens.api.errors import register_exception_handlers
+from infralens.api.request_timeout import RequestTimeout, resolve_request_timeout
 from infralens.api.readers import (
     Runtime,
     pjm_catalog,
@@ -97,6 +104,9 @@ def create_app(
             allow_methods=["GET", "POST", "OPTIONS"],
             allow_headers=["Accept", "Content-Type"],
         )
+    timeout_seconds = resolve_request_timeout(os.environ.get("INFRALENS_REQUEST_TIMEOUT_SECONDS"))
+    if timeout_seconds is not None:
+        app.add_middleware(RequestTimeout, seconds=timeout_seconds)
     hosts = _resolve_trusted_hosts()
     if hosts is not None:
         app.add_middleware(TrustedHostMiddleware, allowed_hosts=hosts, www_redirect=False)
@@ -176,20 +186,47 @@ def _resolve_root(root: Path | None) -> Path:
     return repository_root()
 
 
-def _resolve_trusted_hosts() -> list[str] | None:
-    """Return exact hosts, or None when this process is not on a public host.
+_HOST_NAME = re.compile(
+    r"^(?=.{1,253}$)"
+    r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+    r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$"
+)
 
-    Render sets ``RENDER=true`` and ``RENDER_EXTERNAL_HOSTNAME``. Local tests leave
-    both unset, so the check stays off and does not reject the test client.
+
+def _explicit_host(value: str) -> str:
+    """Return one hostname, or reject a wildcard, blank, or malformed entry."""
+
+    host = value.strip()
+    if not host or "*" in host:
+        raise ValueError("Allowed hosts must be explicit names. A wildcard host is not allowed.")
+    if _HOST_NAME.fullmatch(host) is None:
+        raise ValueError("Allowed hosts must be explicit names. A malformed host is not allowed.")
+    return host
+
+
+def _resolve_trusted_hosts() -> list[str] | None:
+    """Return exact hosts, or None when this process is not on a deployed host.
+
+    Local tests leave Render and the allowlist unset, so the check stays off.
+    A public web service sets ``RENDER_EXTERNAL_HOSTNAME``. A private service sets
+    ``RENDER=true`` and leaves that hostname empty; it must then provide
+    ``INFRALENS_ALLOWED_HOSTS``. ``localhost`` and ``127.0.0.1`` are included only
+    so the tunnel connector and a local readiness probe can call the process.
     """
 
-    extra = [part.strip() for part in os.environ.get("INFRALENS_ALLOWED_HOSTS", "").split(",") if part.strip()]
-    if any(host == "*" or host.startswith("*") for host in extra):
-        raise ValueError("Allowed hosts must be explicit names. A wildcard host is not allowed.")
+    extra: list[str] = []
+    for part in os.environ.get("INFRALENS_ALLOWED_HOSTS", "").split(","):
+        if not part.strip():
+            continue
+        extra.append(_explicit_host(part))
     render_host = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "").strip()
+    if render_host:
+        render_host = _explicit_host(render_host)
     on_render = os.environ.get("RENDER", "").strip().lower() == "true"
-    if on_render and not render_host:
-        raise ValueError("RENDER_EXTERNAL_HOSTNAME is required when RENDER=true.")
+    if on_render and not render_host and not extra:
+        raise ValueError(
+            "RENDER_EXTERNAL_HOSTNAME or INFRALENS_ALLOWED_HOSTS is required when RENDER=true."
+        )
     if not on_render and not extra and not render_host:
         return None
     hosts: list[str] = ["localhost", "127.0.0.1"]

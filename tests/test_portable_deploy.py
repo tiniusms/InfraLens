@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import fnmatch
+import time
 from pathlib import Path
 
+import anyio
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from infralens.api.app import create_app
+from infralens.api.request_timeout import RequestTimeout
 from infralens.data import repository_root
 
 _ROOT = repository_root()
@@ -114,12 +118,23 @@ def test_frontend_rewrites_do_not_capture_api_paths() -> None:
 
 def test_render_blueprint_is_manual_and_has_no_secret() -> None:
     text = (_ROOT / "render.yaml").read_text(encoding="utf-8")
-    assert "healthCheckPath: /api/v1/status" in text
+    assert "type: pserv" in text
+    assert "type: web" not in text
+    assert "healthCheckPath" not in text
+    assert "plan: 0.5c-512mb" in text
     assert "runtime: docker" in text
     assert "autoDeploy: false" in text
+    assert "autoDeployTrigger: off" in text
+    assert "dockerCommand: /app/deploy/start_private.sh" in text
+    assert 'value: "10000"' in text
     assert "EIA_API_KEY" not in text
     assert "INFRALENS_CORS_ORIGINS" in text
-    assert "sync: false" in text
+    assert "INFRALENS_ALLOWED_HOSTS" in text
+    assert "TUNNEL_TOKEN" in text
+    assert text.count("sync: false") >= 3
+    service = text.split("services:", 1)[1]
+    assert "onrender.com" not in service
+    assert "eyJ" not in text
 
 
 def test_requirements_pin_the_api_runtime_without_scientific_extras() -> None:
@@ -175,6 +190,9 @@ def test_packaged_files_have_no_local_paths_or_filled_secrets() -> None:
         _ROOT / "render.yaml",
         _ROOT / "requirements-api.txt",
         _ROOT / "deploy" / "start_api.sh",
+        _ROOT / "deploy" / "start_private.sh",
+        _ROOT / "deploy" / "supervise_private.py",
+        _ROOT / "deploy" / "ci_private_image.py",
         _ROOT / "frontend" / "vercel.json",
         _ROOT / "docs" / "portable_deployment.md",
         _ROOT / ".env.example",
@@ -249,16 +267,19 @@ def _ci_module():
 def test_portable_image_workflow_is_local_and_read_only() -> None:
     workflow = (_ROOT / ".github" / "workflows" / "portable-image.yml").read_text(encoding="utf-8")
     script = (_ROOT / "deploy" / "ci_portable_image.py").read_text(encoding="utf-8")
+    private_script = (_ROOT / "deploy" / "ci_private_image.py").read_text(encoding="utf-8")
     assert "runs-on: ubuntu-latest" in workflow
     assert "timeout-minutes: 20" in workflow
     assert "contents: read" in workflow
     assert "contents: write" not in workflow
     assert "persist-credentials: false" in workflow
-    assert "docker build --pull -t infralens-api:ci ." in workflow
+    assert "docker build --pull --target portable -t infralens-api:ci ." in workflow
+    assert "docker build --target private -t infralens-api:private ." in workflow
     assert "python3 deploy/ci_portable_image.py" in workflow
+    assert "python3 deploy/ci_private_image.py" in workflow
     assert "if: always()" in workflow
     assert "docker rm -f infralens-api-ci" in workflow
-    combined = workflow + "\n" + script
+    combined = "\n".join((workflow, script, private_script))
     for forbidden in (
         "docker push",
         "docker login",
@@ -323,3 +344,94 @@ def test_image_checks_match_the_portable_api(tmp_path: Path, monkeypatch: pytest
     checker.check_catalog(catalog.json())
     checker.check_too_large(oversized.status_code, oversized.json())
     checker.check_three_scenarios(rejected.status_code, json.loads(rejected.text))
+
+
+def test_private_render_allowlist_accepts_the_tunnel_host_and_local_readiness(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("RENDER", "true")
+    monkeypatch.delenv("RENDER_EXTERNAL_HOSTNAME", raising=False)
+    monkeypatch.setenv("INFRALENS_ALLOWED_HOSTS", "api.example.com,")
+    monkeypatch.delenv("INFRALENS_REQUEST_TIMEOUT_SECONDS", raising=False)
+    root = _portable_root(tmp_path)
+    app = create_app(root=root, cors_origins=[])
+    for base in ("http://api.example.com", "http://localhost", "http://127.0.0.1"):
+        with TestClient(app, base_url=base) as client:
+            response = client.get("/api/v1/status")
+        assert response.status_code == 200, base
+        assert response.json()["presence_mode"] == "portable_summary"
+    with TestClient(app, base_url="http://evil.example") as client:
+        rejected = client.get("/api/v1/status")
+    assert rejected.status_code == 400
+    assert rejected.text == "Invalid host header"
+    with pytest.raises(ValueError, match="Wildcard"):
+        create_app(root=root, cors_origins=["*"])
+
+
+@pytest.mark.parametrize(
+    "raw",
+    ["*", "*.example.com", "https://api.example.com", "api.example.com/status", "api example.com", ""],
+)
+def test_malformed_or_empty_host_entries_are_rejected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, raw: str
+) -> None:
+    monkeypatch.setenv("RENDER", "true")
+    monkeypatch.delenv("RENDER_EXTERNAL_HOSTNAME", raising=False)
+    monkeypatch.setenv("INFRALENS_ALLOWED_HOSTS", raw)
+    with pytest.raises(ValueError, match="Allowed hosts|RENDER_EXTERNAL_HOSTNAME"):
+        create_app(root=_portable_root(tmp_path), cors_origins=[])
+
+
+def test_private_image_pin_is_separate_from_the_portable_target() -> None:
+    text = _DOCKERFILE.read_text(encoding="utf-8")
+    portable, private = text.split("FROM portable AS private", 1)
+    assert "cloudflared-linux-amd64" not in portable
+    assert "/usr/local/bin/cloudflared" not in portable
+    assert "CMD [\"/app/deploy/start_api.sh\"]" in portable
+    assert "2026.10.1" in private
+    assert "3bfc539f45d2620c71debb7a86be0efa737ed5ccbad9eb85c787116900e5c586" in private
+    assert "cloudflared-linux-amd64" in private
+    assert "CMD [\"/app/deploy/start_private.sh\"]" in private
+    assert "TUNNEL_TOKEN=" not in text
+    standalone = (_ROOT / "deploy" / "start_api.sh").read_text(encoding="utf-8")
+    assert "TUNNEL_TOKEN" not in standalone
+    assert "cloudflared" not in standalone
+
+
+def test_request_timeout_is_off_until_configured(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("RENDER", raising=False)
+    monkeypatch.delenv("INFRALENS_ALLOWED_HOSTS", raising=False)
+    monkeypatch.delenv("INFRALENS_REQUEST_TIMEOUT_SECONDS", raising=False)
+    root = _portable_root(tmp_path)
+    plain = create_app(root=root, cors_origins=[])
+    assert all(getattr(item, "cls", None) is not RequestTimeout for item in plain.user_middleware)
+    monkeypatch.setenv("INFRALENS_REQUEST_TIMEOUT_SECONDS", "30")
+    bounded = create_app(root=root, cors_origins=[])
+    assert any(getattr(item, "cls", None) is RequestTimeout for item in bounded.user_middleware)
+    with TestClient(bounded) as client:
+        assert client.get("/api/v1/status").status_code == 200
+    for raw in ("nope", "0", "-1", "121", "nan"):
+        monkeypatch.setenv("INFRALENS_REQUEST_TIMEOUT_SECONDS", raw)
+        with pytest.raises(ValueError, match="INFRALENS_REQUEST_TIMEOUT_SECONDS"):
+            create_app(root=root, cors_origins=[])
+
+
+def test_request_timeout_returns_504_and_is_not_keep_alive() -> None:
+    app = FastAPI()
+
+    @app.get("/slow")
+    async def slow() -> dict[str, bool]:
+        await anyio.sleep(2)
+        return {"ok": True}
+
+    app.add_middleware(RequestTimeout, seconds=0.05)
+    started = time.monotonic()
+    with TestClient(app) as client:
+        response = client.get("/slow")
+    elapsed = time.monotonic() - started
+    assert response.status_code == 504
+    assert response.json()["code"] == "request_timeout"
+    assert elapsed < 1
+    script = (_ROOT / "deploy" / "start_api.sh").read_text(encoding="utf-8")
+    assert "--timeout-keep-alive 5" in script
+    assert "request_timeout" not in script
