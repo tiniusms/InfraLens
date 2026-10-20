@@ -8,17 +8,24 @@ and that fetch happens in the workflow's docker build step.
 from __future__ import annotations
 
 import hashlib
+import http.client
 import json
+import re
 import subprocess
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from pathlib import Path
 
 IMAGE = "infralens-api:ci"
 CONTAINER = "infralens-api-ci"
 HOST = "127.0.0.1"
 HOST_PORT = 8000
+READINESS_SECONDS = 45
+_SECRET_LINE = re.compile(
+    r"(?i)\b(EIA_API_KEY|TOKEN|SECRET|PASSWORD|AUTHORIZATION)\b\s*[=:].*"
+)
 PINNED_SUMMARY_SHA256 = "5b116d9d0eaba5269f5afab71f60c826f4553174fb330e6e8fe80dfb6eba1393"
 ROOT = Path(__file__).resolve().parents[1]
 SUMMARY = ROOT / "docs" / "final_eia_holdout_oneshot.json"
@@ -255,17 +262,126 @@ def _run(command: list[str], *, stdin: str | None = None) -> str:
     return completed.stdout
 
 
-def _logs() -> None:
+def is_transient_transport_error(exc: BaseException) -> bool:
+    """True for a closed or refused connection while the process is still starting.
+
+    ``ConnectionResetError`` is a ``ConnectionError``, not a ``urllib.error.URLError``.
+    urllib wraps socket errors from ``HTTPConnection.request`` and lets errors from
+    ``getresponse`` propagate unchanged. A scientific assertion is never transient.
+    """
+
+    if isinstance(exc, AssertionError):
+        return False
+    return isinstance(exc, (ConnectionError, TimeoutError, urllib.error.URLError, http.client.IncompleteRead))
+
+
+def sanitize_log(text: str, *, limit: int = 80) -> str:
+    """Keep the tail of a container log and redact credential assignments."""
+
+    lines = []
+    for line in text.splitlines()[-limit:]:
+        lines.append(_SECRET_LINE.sub(r"\1=[redacted]", line))
+    return "\n".join(lines)
+
+
+def _fail_startup(reason: str, state: str, log_text: str, last_error: str | None = None) -> None:
+    parts = [reason, f"state={state}"]
+    if last_error:
+        parts.append(f"last_error={last_error}")
+    sanitized = sanitize_log(log_text)
+    parts.append(sanitized if sanitized else "docker logs were empty")
+    raise SystemExit("\n".join(parts))
+
+
+def wait_for_api(
+    *,
+    deadline: float,
+    container_running: Callable[[], bool],
+    container_state: Callable[[], str],
+    probe: Callable[[], int],
+    logs: Callable[[], str],
+    clock: Callable[[], float] = time.monotonic,
+    sleep: Callable[[float], None] = time.sleep,
+) -> None:
+    """Poll until status returns 200, the container exits, or the deadline passes."""
+
+    last_error = "no connection attempt"
+    while clock() < deadline:
+        if not container_running():
+            _fail_startup("container exited during startup", container_state(), logs())
+        try:
+            code = probe()
+        except Exception as exc:
+            if not is_transient_transport_error(exc):
+                raise
+            last_error = f"{type(exc).__name__}: {exc}"
+            if not container_running():
+                _fail_startup("container exited during startup", container_state(), logs(), last_error)
+            remaining = deadline - clock()
+            if remaining <= 0:
+                break
+            sleep(min(1.0, remaining))
+            continue
+        if code == 200:
+            return
+        last_error = f"status {code}"
+        if not container_running():
+            _fail_startup("container exited during startup", container_state(), logs(), last_error)
+        remaining = deadline - clock()
+        if remaining <= 0:
+            break
+        sleep(min(1.0, remaining))
+    running = container_running()
+    state = container_state()
+    if not running:
+        _fail_startup("container exited during startup", state, logs(), last_error)
+    _fail_startup("startup timed out", state, logs(), last_error)
+
+
+def run_when_ready(wait: Callable[[], None], exercise: Callable[[], None]) -> None:
+    """Run the smoke matrix only after the status endpoint has returned 200."""
+
+    wait()
+    print("api-ready")
+    exercise()
+    print("portable-image-ok")
+
+
+def _container_logs() -> str:
     completed = subprocess.run(
         ["docker", "logs", CONTAINER],
         text=True,
         capture_output=True,
         check=False,
     )
-    if completed.stdout:
-        print(completed.stdout)
-    if completed.stderr:
-        print(completed.stderr)
+    return f"{completed.stdout or ''}{completed.stderr or ''}"
+
+
+def _logs() -> None:
+    sanitized = sanitize_log(_container_logs())
+    if sanitized:
+        print(sanitized)
+
+
+def _container_running() -> bool:
+    return _run(["docker", "inspect", "-f", "{{.State.Running}}", CONTAINER]).strip() == "true"
+
+
+def _container_state() -> str:
+    return _run(
+        [
+            "docker",
+            "inspect",
+            "-f",
+            "{{.State.Status}} exit={{.State.ExitCode}} error={{.State.Error}}",
+            CONTAINER,
+        ]
+    ).strip()
+
+
+def _status_code() -> int:
+    code, _body = _request("GET", "/api/v1/status")
+    return code
 
 
 def exercise_http() -> None:
@@ -377,27 +493,16 @@ def main() -> None:
             raise SystemExit(f"container user is {user}")
         if command != '["/app/deploy/start_api.sh"]':
             raise SystemExit(f"container command is {command}")
-        deadline = time.monotonic() + 45
-        last_error = "startup timed out"
-        while time.monotonic() < deadline:
-            running = _run(["docker", "inspect", "-f", "{{.State.Running}}", CONTAINER]).strip()
-            if running != "true":
-                last_error = "container exited during startup"
-                break
-            try:
-                code, _body = _request("GET", "/api/v1/status")
-            except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
-                last_error = str(exc)
-                time.sleep(1)
-                continue
-            if code == 200:
-                exercise_http()
-                print("portable-image-ok")
-                return
-            last_error = f"status {code}"
-            time.sleep(1)
-        _logs()
-        raise SystemExit(last_error)
+        run_when_ready(
+            lambda: wait_for_api(
+                deadline=time.monotonic() + READINESS_SECONDS,
+                container_running=_container_running,
+                container_state=_container_state,
+                probe=_status_code,
+                logs=_container_logs,
+            ),
+            exercise_http,
+        )
     except BaseException:
         _logs()
         raise
