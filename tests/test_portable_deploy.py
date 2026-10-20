@@ -83,6 +83,8 @@ def test_dockerignore_and_dockerfile_omit_local_artifacts() -> None:
     assert "python:3.12.12-slim-bookworm@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c" in text
     assert "--no-deps" in text
     assert "USER infralens" in text
+    checked = text.split("pip install --no-cache-dir --no-deps -r requirements-api.txt", 1)[1]
+    assert checked.index("pip check") < checked.index("pip install --no-cache-dir --no-deps .")
 
 
 def test_start_script_binds_all_interfaces_and_ignores_proxy_headers() -> None:
@@ -132,10 +134,38 @@ def test_requirements_pin_the_api_runtime_without_scientific_extras() -> None:
     assert pins["starlette"] == "1.8.0"
     assert pins["pydantic"] == "2.14.1"
     assert pins["pandas"] == "3.0.5"
+    assert pins["opentelemetry-api"] == "1.45.1"
+    assert "opentelemetry-sdk" not in pins
+    assert "opentelemetry-exporter-otlp-proto-http" not in pins
     assert "scikit-learn" not in pins
     assert "pyarrow" not in pins
     assert "duckdb" not in pins
     assert "httpx" not in pins
+
+
+def test_pinned_runtime_metadata_has_no_missing_requirement() -> None:
+    """Each unconditional requirement of a pinned distribution is itself pinned."""
+
+    import importlib.metadata as metadata
+    from packaging.requirements import Requirement
+    from packaging.version import Version
+
+    pins: dict[str, str] = {}
+    for line in (_ROOT / "requirements-api.txt").read_text(encoding="utf-8").splitlines():
+        if not line or line.startswith("#"):
+            continue
+        name, version = line.split("==")
+        pins[name.lower().replace("_", "-")] = version
+    for name, version in pins.items():
+        dist = metadata.metadata(name)
+        assert dist["Version"] == version
+        for declared in dist.get_all("Requires-Dist") or []:
+            requirement = Requirement(declared)
+            if requirement.marker is not None and not requirement.marker.evaluate({"extra": ""}):
+                continue
+            dependency = requirement.name.lower().replace("_", "-")
+            assert dependency in pins, declared
+            assert Version(pins[dependency]) in requirement.specifier, declared
 
 
 def test_packaged_files_have_no_local_paths_or_filled_secrets() -> None:

@@ -18,7 +18,10 @@ COPY src ./src
 COPY docs/final_eia_holdout_oneshot.json ./docs/final_eia_holdout_oneshot.json
 COPY deploy/start_api.sh ./deploy/start_api.sh
 
+# Check the runtime closure before the local project is installed. That
+# project's metadata still requires the scientific stack, which stays out.
 RUN pip install --no-cache-dir --no-deps -r requirements-api.txt \
+    && pip check \
     && pip install --no-cache-dir --no-deps . \
     && chmod 755 /app/deploy/start_api.sh \
     && chown -R root:root /app \
