@@ -13,6 +13,16 @@ A Streamlit page shows that FAIL result, the observed commercial-price history, 
 Primary geography: PJM state footprint (user-facing comparison initially VA, PA, OH, MD, NJ).  
 Due: 25 October 2026. Fallback project: RateLens (FDIC/FRED NIM forecasting) if public-data feasibility fails.
 
+## Live demo
+
+The public site is [https://infra-lens-gules.vercel.app](https://infra-lens-gules.vercel.app). Its API is [https://api.infralensenergy.com](https://api.infralensenergy.com).
+
+That deployment is the portable subset. It serves the frozen commercial-price FAIL and the typed annual-cost calculator. It does not serve the EIA price history, the holdout-case file, or the PJM workbook measures. Those remain local full-data files. The pages and API responses were read live on 2026-10-20. Region, service plan, tunnel health, the Cloudflare rule, and the first memory reading are operator reports, and the evidence table labels them that way.
+
+InfraLens is a historical evaluation, a deterministic hypothetical cost calculator, and an infrastructure-screening prototype. It is not a validated live production forecasting system and not an investment recommendation. The public pages do not imply that historical EIA prices or PJM MW screening are operational there.
+
+Hosting, rollback, cost, and the 2026-10-20 evidence table are in [`docs/public_release_validation.md`](docs/public_release_validation.md). The deployment layout is in [`docs/portable_deployment.md`](docs/portable_deployment.md).
+
 ## Repository source of truth
 
 | File | Role |
@@ -70,4 +80,4 @@ Python 3.11+ installable package in `src/infralens`. Core dependencies are panda
 
 The repository includes EIA commercial retail-sales ingest, publication-lag-constrained development backtests (seasonal naive, Ridge, and a histogram-gradient-boosting comparison that lost on development MAE), state-specific absolute-residual intervals, origin-specific Ridge coefficient explanations, a deterministic annual electricity-cost identity, PJM 2025/2026 table screening parsed from workbook ZIP/XML, and the Streamlit historical-evaluation page.
 
-Deferred or outside this package: XGBoost, SHAP, MLflow, Docker, and openpyxl. MLflow remains deferred (`DECISIONS.md`, 2026-09-29). Explanations are the fitted linear identity: the intercept plus each feature's contribution. Nominal 80% interval coverage is the method's stated rate. The 75–85% holdout-coverage band was a diagnostic. The frozen holdout coverage is 0%.
+Deferred or outside this package: XGBoost, SHAP, MLflow, and openpyxl. The public API image is documented in [`docs/portable_deployment.md`](docs/portable_deployment.md). MLflow remains deferred (`DECISIONS.md`, 2026-09-29). Explanations are the fitted linear identity: the intercept plus each feature's contribution. Nominal 80% interval coverage is the method's stated rate. The 75–85% holdout-coverage band was a diagnostic. The frozen holdout coverage is 0%.
