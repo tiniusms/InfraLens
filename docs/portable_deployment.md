@@ -1,6 +1,24 @@
 # Portable public deployment
 
-This is a prepared deployment variant. Applying it creates accounts, services, and public URLs, and that step needs approval. Nothing in this repository provisions Vercel, Render, or Cloudflare.
+The files in this repository do not provision Vercel, Render, or Cloudflare. Creating or changing a host still needs a separate approval. Git-based automatic deployment for the Render service stays off.
+
+## Verified production state
+
+Checked on 2026-10-20. The evidence table, including what this session measured and what remains an operator report, is [`public_release_validation.md`](public_release_validation.md).
+
+| Piece | Production value |
+| --- | --- |
+| Frontend | `https://infra-lens-gules.vercel.app` |
+| API | `https://api.infralensenergy.com` |
+| DNS zone | `infralensenergy.com` |
+| Frontend host | Vercel, Vite React static build, operator-reported Hobby project |
+| API host | Existing Render private service `infralens-api`, operator-reported Virginia region, plan `0.5c-512mb` |
+| Tunnel | Operator-reported tunnel name `infralens-api`, one healthy connector, `cloudflared` 2026.10.1 |
+| Public Render hostname | Operator-reported: none. This session reached the API only at the Cloudflare hostname above. |
+
+`GET /api/v1/status` on that API returned `presence_mode` `portable_summary`. The committed summary was `valid`. The four local artifacts were `missing`. Overview in the browser showed primary criterion FAIL and the stored Ridge and seasonal-naive MAE figures. The finance page calculated the 50 MW identity in Python. Electricity Intelligence and the PJM explorer loaded and reported their local series unavailable.
+
+`origin/main` at this writing is `c41ddfd3e25784bbc9ceb2258ba2e43486c837db`, the squash of pull request #5. GitHub Actions did not run on that squash commit. The tree is identical to `0a678e2836102be2353c02a1eeec2edcabfc1658`, and the Portable image workflow on that commit succeeded: [run 39482007846](https://github.com/tiniusms/InfraLens/actions/runs/39482007846). The log contains `api-ready`, `portable-image-ok`, `cloudflared-syntax-ok`, and `private-image-ok`.
 
 The public process serves the committed evaluation summary and the typed annual-cost identity. It does not serve the EIA price extract, the holdout-case file, or the PJM workbooks. Those four files stay gitignored and out of the image. Do not set `EIA_API_KEY` on either host.
 
@@ -25,7 +43,7 @@ Other services in the same Render workspace and region can still open the privat
 
 ## Cloudflare hostname
 
-Use placeholders until a hostname is chosen. Do not put a real name, account id, or token in the repository.
+The production names are in the table above. The rows below are the setting shape. Do not put an account id, a tunnel token, or a payment detail in the repository.
 
 | Setting | Placeholder |
 | --- | --- |
@@ -36,6 +54,8 @@ Use placeholders until a hostname is chosen. Do not put a real name, account id,
 | `INFRALENS_ALLOWED_HOSTS` | `api.example.com` |
 | `VITE_API_BASE_URL` | `https://api.example.com` |
 | `INFRALENS_CORS_ORIGINS` | `https://YOUR-PROJECT.vercel.app` |
+
+Production uses `https://infra-lens-gules.vercel.app` as the page origin and `api.infralensenergy.com` as the API hostname and allowlist entry. The tunnel token remains a Render environment value and is not written here.
 
 `httpHostHeader` is an origin setting on the tunnel, not an application default. Set it to the public hostname so the process sees `Host: api.example.com`. That name has to be the allowlist entry. `localhost` and `127.0.0.1` stay allowed for the connector's own HTTP request and for a local probe. They do not allow an arbitrary public `Host`. A wildcard allowlist is rejected at startup.
 
@@ -109,18 +129,22 @@ Cloudflare's default proxy read timeout is 125 seconds. That is a platform defau
 
 ## Edge rate limit
 
-Before anonymous clients can `POST /api/v1/finance/scenarios`, create one Cloudflare rate-limit rule on the Free plan and then prove it with a live request. The published Free rule, as read for the hosting decision, has these limits:
+The operator reports one Cloudflare rate-limit rule on the finance path, status Active, as of 2026-10-20: 10 matching requests per IP over 10 seconds, then 10 seconds of mitigation. That report was not re-read from the Cloudflare dashboard in the documentation session.
+
+The published Free rule, as read for the hosting decision, has these limits:
 
 - One rule.
 - The expression can match the path. It cannot match the HTTP method.
 - Count by client IP.
 - Period 10 seconds, mitigation 10 seconds.
 - The count is per data center and can lag, so some extra requests can reach the origin.
-- `OPTIONS` requests to that path count. A browser preflight therefore uses the same budget as the `POST`.
+- `OPTIONS` requests to that path can count. The request that reached `429` omitted `Origin`, so it does not show that a browser preflight spends the same budget.
 
-Use a finance-path rule, not a method rule. The origin still enforces two scenarios and 8192 body bytes. A larger body returns `413` `request_too_large`. A third scenario returns `422` `validation_error`. Uvicorn concurrency stays 16. CORS stays an explicit origin list with credentials off, methods `GET`, `POST`, and `OPTIONS`, and headers `Accept` and `Content-Type`.
+The live rule is a finance-path rule, not a method rule. The origin still enforces two scenarios and 8192 body bytes. A larger body returns `413` `request_too_large`. A third scenario returns `422` `validation_error`. Uvicorn concurrency stays 16. CORS stays an explicit origin list with credentials off, methods `GET`, `POST`, and `OPTIONS`, and headers `Accept` and `Content-Type`.
 
-Do not describe the rate limit as active until a live request from outside Cloudflare is limited and a request from another Render private-network service is observed separately. The second request is the bypass. Body-size matching at Cloudflare is not part of this Free rule.
+The count is approximate. It is per data center, it can lag, and it can include `OPTIONS`. It is not a global server-wide hard cap. A controlled `OPTIONS` request that omitted the `Origin` header received `405` from the API, then `429`, and one Cloudflare rate-limit event was recorded. That request was not a browser CORS preflight. A separate single preflight on 2026-10-20, with `Origin`, `Access-Control-Request-Method: POST`, and `Access-Control-Request-Headers: content-type`, returned `200` and allowed `https://infra-lens-gules.vercel.app`. That one request does not measure the rate-limit counter.
+
+A request from another Render private-network service is not covered by the Cloudflare rule. That bypass was not exercised in this check. Body-size matching at Cloudflare is not part of this Free rule.
 
 ## Image contents
 
@@ -139,11 +163,19 @@ Dependencies are the pins in `requirements-api.txt`, installed with `pip --no-de
 
 CI builds `--target portable`, runs the existing smoke checks, then builds `--target private` and runs `deploy/ci_private_image.py`. That second step checks the ELF machine, the version string, a token-free startup, and the pinned binary's `tunnel --no-autoupdate run` syntax. The syntax probe expects the missing-tunnel message. A nonzero exit by itself is not enough: an unknown flag, including `--grace-period` after `run`, fails the check. The probe does not receive `TUNNEL_TOKEN` and uses `--network none`.
 
-## Memory and cost still to measure
+## Memory and cost
 
-`0.5c-512mb` is 0.5 CPU and 512 MB. The Render pricing page read on 2026-10-19 listed that private-service plan at $7 per month, plus a Hobby workspace at $0. Confirm the price again before creating the service. Whether Uvicorn, pandas, numpy, and `cloudflared` stay inside 512 MB is not known. The binary size above is not RSS. The first hosted boot has to record resident memory. If it does not fit, the next private-service plan in the same spec is `1c-2g`.
+`0.5c-512mb` is 0.5 CPU and 512 MB. The Render pricing page read on 2026-10-19 listed that private-service plan at $7 per month, plus a Hobby workspace at $0. The operator reports the live service on that tier. Confirm the price again before changing the plan.
+
+The operator's first look at the running service was roughly 20 percent of 512 MB memory and CPU near idle. Those figures are preliminary. They are not a load test, and they are not a capacity guarantee. The cloudflared file size above is not RSS. If the service outgrows the plan, the next private-service plan in the same spec is `1c-2g`.
+
+Recurring cost for this deployment is the Render plan above, a Vercel Hobby project on the eligible free tier, and the `infralensenergy.com` registration billed annually. Domain renewal pricing is subject to change and is not recorded here. This deployment has no uptime target. Keep checking that the API answers and that memory stays inside the plan. Those checks do not make it a production-grade availability service.
+
+Rollback for the frontend is the previous Vercel deployment of the same project. Rollback for the API is the previous Render deploy of `infralens-api`, or suspending that private service so the static shell fails closed on API calls. Redeploy Render by hand. A git push does not deploy while `autoDeployTrigger` is off. Cloudflare rollback is restoring the previous hostname route and the previous finance-path rate rule in the dashboard. Environment names the service needs, with no values stored here, are `TUNNEL_TOKEN`, `INFRALENS_CORS_ORIGINS`, `INFRALENS_ALLOWED_HOSTS`, `PORT`, `INFRALENS_REQUEST_TIMEOUT_SECONDS`, and `INFRALENS_ROOT`. Do not set `EIA_API_KEY`.
 
 ## Checks after a real deploy
+
+The 2026-10-20 pass against the live hostnames is recorded in [`public_release_validation.md`](public_release_validation.md). Repeat this list after a later deploy. Replace `api.example.com` with the live API hostname.
 
 1. The service has no public `onrender.com` URL.
 2. `https://api.example.com/api/v1/status` is `portable_summary` with the four local roles missing. Replace the placeholder hostname first.
@@ -152,7 +184,7 @@ CI builds `--target portable`, runs the existing smoke checks, then builds `--ta
 5. History, holdout, holdout cases, and `GET /api/v1/pjm/screen` return `404` `artifact_missing`.
 6. `GET /api/v1/pjm/catalog` returns zones and both warnings.
 7. A body over 8192 bytes returns `413`. Three scenarios return `422`.
-8. A finance-path request over the Cloudflare rule is limited, including an `OPTIONS` request. A request from another Render private service is not covered by that rule.
+8. A finance-path request over the Cloudflare rule is limited. The 2026-10-20 `OPTIONS` observation that reached `429` omitted `Origin`, so it is not a CORS preflight result. A request from another Render private service is not covered by that rule and was not sent.
 9. The Vercel pages show FAIL, a working typed finance result, and unavailable electricity and PJM measures.
 10. The browser origin matches `INFRALENS_CORS_ORIGINS` exactly.
 11. Startup logs do not contain the tunnel token.
@@ -164,7 +196,7 @@ Publishing the parsed PJM workbook measures, or the EIA extract, is unresolved. 
 
 ## Local builds
 
-Docker was not available on the machine that prepared this variant, so neither target was built here. The portable target is the one CI already exercised at the previous commit. The private target is new and unverified until the workflow runs.
+The Portable image workflow that matches the current `main` tree is [run 39482007846](https://github.com/tiniusms/InfraLens/actions/runs/39482007846) on commit `0a678e2836102be2353c02a1eeec2edcabfc1658`. This documentation change did not build an image locally.
 
 ```bash
 docker build --target portable -t infralens-api .
