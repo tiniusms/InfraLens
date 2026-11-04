@@ -1,3 +1,8 @@
+# Retired example, 2026-11-03. The Render private service this blueprint
+# described was deleted. Applying this file would create a new service and
+# still needs a separate approval. It does not describe a running host.
+# See docs/infrastructure_decommission_2026_11_03.md.
+#
 # Proposed private Render service. Applying this blueprint creates a service
 # and is a manual step. This file does not provision anything by itself.
 # There is one service. It is not a public web service and has no onrender.com

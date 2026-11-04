@@ -1,5 +1,13 @@
 # InfraLens Current Tasks
 
+## Hosting retirement and Claude Code preparation (2026-11-03)
+- [x] Record the November 3, 2026 public-hosting retirement without altering the October 20, 2026 validation merged in pull request #6.
+- [x] Confirm local API and frontend defaults do not call the retired Vercel, Render, or Cloudflare hosts.
+- [x] Keep `Dockerfile`, `render.yaml`, `frontend/vercel.json`, and `deploy/` as retired deployment examples.
+- [x] Leave `AGENTS.md` and `CLAUDE.md` usable by a standalone coding agent. Cursor project rules remain; they are not required to run the local app.
+- [ ] Redeploy only after a new approval and the prerequisites in `docs/infrastructure_decommission_2026_11_03.md`. Registry release of `infralensenergy.com` is still unverified.
+- [ ] Version 2 feature work is outside this retirement.
+
 ## Now
 - [x] Scaffold Python package (`src/infralens`, tests, data dirs, feasibility-sprint deps).
 - [x] Create GitHub repository and copy the onboarding pack into root.

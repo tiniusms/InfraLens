@@ -13,15 +13,17 @@ A Streamlit page shows that FAIL result, the observed commercial-price history, 
 Primary geography: PJM state footprint (user-facing comparison initially VA, PA, OH, MD, NJ).  
 Due: 25 October 2026. Fallback project: RateLens (FDIC/FRED NIM forecasting) if public-data feasibility fails.
 
-## Live demo
+## Current deployment status
 
-The public site is [https://infra-lens-gules.vercel.app](https://infra-lens-gules.vercel.app). Its API is [https://api.infralensenergy.com](https://api.infralensenergy.com).
+The previously validated Vercel frontend, Render API, and Cloudflare Tunnel were intentionally decommissioned on November 3, 2026. Those hosts are not a supported runtime. Do not call `https://infra-lens-gules.vercel.app` or `https://api.infralensenergy.com`.
 
-That deployment is the portable subset. It serves the frozen commercial-price FAIL and the typed annual-cost calculator. It does not serve the EIA price history, the holdout-case file, or the PJM workbook measures. Those remain local full-data files. The pages and API responses were read live on 2026-10-20. Region, service plan, tunnel health, the Cloudflare rule, and the first memory reading are operator reports, and the evidence table labels them that way.
+On October 20, 2026 those names served the portable subset: the frozen commercial-price FAIL and the typed annual-cost calculator, without the EIA price history, the holdout-case file, or the PJM workbook measures. That check is historical evidence. It is not a description of infrastructure that is still running, and this retirement does not change the recorded FAIL.
 
-InfraLens is a historical evaluation, a deterministic hypothetical cost calculator, and an infrastructure-screening prototype. It is not a validated live production forecasting system and not an investment recommendation. The public pages do not imply that historical EIA prices or PJM MW screening are operational there.
+Pull request #6, “docs: document verified InfraLens public release,” is merged to `main` as `895b5368cb3729953df1218346b78b39bec948e4`. Its evidence table stays in [`docs/public_release_validation.md`](docs/public_release_validation.md). The November 3 shutdown is a later event, recorded in [`docs/infrastructure_decommission_2026_11_03.md`](docs/infrastructure_decommission_2026_11_03.md) and in `DECISIONS.md`. The deployment templates in [`docs/portable_deployment.md`](docs/portable_deployment.md), `Dockerfile`, `render.yaml`, `frontend/vercel.json`, and `deploy/` remain available for a future redeploy. They do not provision a host by themselves.
 
-Hosting, rollback, cost, and the 2026-10-20 evidence table are in [`docs/public_release_validation.md`](docs/public_release_validation.md). The deployment layout is in [`docs/portable_deployment.md`](docs/portable_deployment.md).
+The application source, FastAPI backend, React frontend, Streamlit demo, tests, and frozen evaluation artifacts remain in this repository for local development.
+
+InfraLens is a historical evaluation, a deterministic hypothetical cost calculator, and an infrastructure-screening prototype. It is not a validated live production forecasting system and not an investment recommendation.
 
 ## Repository source of truth
 
@@ -53,6 +55,30 @@ Startup reads the committed holdout summary and any local cache files that are a
 
 The three-tab defense walkthrough, expected example values, and portable-mode limits are in [`docs/demo_walkthrough.md`](docs/demo_walkthrough.md).
 
+## Local API and React frontend
+
+The FastAPI adapter and the Vite app talk to each other on this machine. They do not use the retired public hosts. Install the API extra with the demo extra:
+
+```bash
+python -m pip install -e ".[dev,demo,api]"
+INFRALENS_CORS_ORIGINS=http://127.0.0.1:5173,http://localhost:5173 \
+  python -m uvicorn infralens.api.app:app
+```
+
+Uvicorn’s default listen address is `127.0.0.1:8000`. In another shell:
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+Vite listens on port 5173 (`frontend/vite.config.ts`, `strictPort`). Open the same host you listed in `INFRALENS_CORS_ORIGINS`. `localhost` and `127.0.0.1` are different origins.
+
+`frontend/src/api/client.ts` resolves an unset `VITE_API_BASE_URL` to `http://127.0.0.1:8000`. `frontend/.env.example` sets that same local origin. Copy it to `frontend/.env` only when the API is not on that address. An explicit empty value calls same-origin `/api`, which this package does not proxy.
+
+Frontend checks, from `frontend/`: `npm test`, `npm run lint`, and `npm run build`. The non-holdout regression command is `python -m pytest tests --ignore=tests/test_final_holdout.py`. Do not run `python -m infralens.evaluation.final_holdout`.
+
 ### Portable mode and local full-data mode
 
 Portable mode uses the committed summary `docs/final_eia_holdout_oneshot.json`. The FAIL banner and the typed annual-cost form still run. If any of the four gitignored caches below is missing, each missing chart or workbook stays unavailable.
@@ -80,4 +106,4 @@ Python 3.11+ installable package in `src/infralens`. Core dependencies are panda
 
 The repository includes EIA commercial retail-sales ingest, publication-lag-constrained development backtests (seasonal naive, Ridge, and a histogram-gradient-boosting comparison that lost on development MAE), state-specific absolute-residual intervals, origin-specific Ridge coefficient explanations, a deterministic annual electricity-cost identity, PJM 2025/2026 table screening parsed from workbook ZIP/XML, and the Streamlit historical-evaluation page.
 
-Deferred or outside this package: XGBoost, SHAP, MLflow, and openpyxl. The public API image is documented in [`docs/portable_deployment.md`](docs/portable_deployment.md). MLflow remains deferred (`DECISIONS.md`, 2026-09-29). Explanations are the fitted linear identity: the intercept plus each feature's contribution. Nominal 80% interval coverage is the method's stated rate. The 75–85% holdout-coverage band was a diagnostic. The frozen holdout coverage is 0%.
+Deferred or outside this package: XGBoost, SHAP, MLflow, and openpyxl. The portable API image recipe remains in [`docs/portable_deployment.md`](docs/portable_deployment.md). The hosted service that used it was decommissioned on 2026-11-03. MLflow remains deferred (`DECISIONS.md`, 2026-09-29). Explanations are the fitted linear identity: the intercept plus each feature's contribution. Nominal 80% interval coverage is the method's stated rate. The 75–85% holdout-coverage band was a diagnostic. The frozen holdout coverage is 0%.

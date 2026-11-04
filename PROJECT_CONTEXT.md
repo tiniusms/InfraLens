@@ -82,7 +82,7 @@ Project management, scope control, domain learning, research synthesis, statisti
 Primary implementation environment for Python, tests, refactors, data-pipeline work, Streamlit, and repository-local iteration. Cursor must read `AGENTS.md`, `PROJECT_CONTEXT.md`, and `DECISIONS.md` before major changes.
 
 ### Claude / Claude Code
-Independent architecture and code-review partner. Use for difficult debugging, refactoring, test review, and adversarial critique. It should not silently redefine scope or metrics.
+Supported implementation and review environment, including standalone Claude Code. Read `AGENTS.md` before editing. Use it for implementation, debugging, refactoring, test review, and adversarial critique. It should not silently redefine scope or metrics. Public hosting was retired on 2026-11-03. Develop with the local commands in `README.md`, and do not call retired production hosts.
 
 ### Perplexity
 Rapid discovery of recent academic/industry sources. Treat it as a discovery engine; verify important claims against original papers, agencies, or primary documentation before use.
