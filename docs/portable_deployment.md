@@ -1,8 +1,10 @@
 # Portable public deployment
 
-The files in this repository do not provision Vercel, Render, or Cloudflare. Creating or changing a host still needs a separate approval. Git-based automatic deployment for the Render service stays off.
+**Status on 2026-11-03.** The hosts in the October 20 section below were intentionally decommissioned. This file remains the historical deployment description and a redeployment template. It is not a statement that Vercel, Render, or Cloudflare are still serving InfraLens. Shutdown facts and evidence limits are in [`infrastructure_decommission_2026_11_03.md`](infrastructure_decommission_2026_11_03.md). The October 20 measurements stay in [`public_release_validation.md`](public_release_validation.md) and are not revised here.
 
-## Verified production state
+The files in this repository do not provision Vercel, Render, or Cloudflare. Creating or changing a host still needs a separate approval. Git-based automatic deployment for a future Render service stays off. Applying `render.yaml` now would create a new service. It would not restore the deleted one.
+
+## Verified production state (historical, 2026-10-20)
 
 Checked on 2026-10-20. The evidence table, including what this session measured and what remains an operator report, is [`public_release_validation.md`](public_release_validation.md).
 

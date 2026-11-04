@@ -40,3 +40,8 @@ Read `PROJECT_CONTEXT.md` and `DECISIONS.md` before proposing or implementing ma
 
 ## When uncertain
 Do not silently invent assumptions. Record the ambiguity in `DECISIONS.md` or raise it to the project owner with a concrete recommendation.
+
+## Local repository after public-hosting retirement
+As of 2026-11-03 the supported runtime is this repository on a local machine. The October 20, 2026 Vercel, Render, and Cloudflare deployment was retired. Do not call those former hosts, do not treat `docs/public_release_validation.md` as a live runbook, and do not rewrite that file. Deployment templates remain for a future approved redeploy. The shutdown record is `docs/infrastructure_decommission_2026_11_03.md` and the 2026-11-03 entry in `DECISIONS.md`.
+
+Claude Code and other standalone coding agents follow this file. They do not need Cursor-specific tooling to install, test, or edit the project. `.cursor/rules/infralens.mdc` repeats the same project rules for Cursor and stays in the tree.

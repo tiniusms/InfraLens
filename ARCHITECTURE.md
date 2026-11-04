@@ -1,6 +1,20 @@
 # InfraLens architecture
 
-This note describes the system implemented on `feat/pjm-screening-layer`. `PROJECT_CONTEXT.md` sections 3, 7, and 12 still name the planned stack, including Docker, MLflow, SHAP, and XGBoost. Those names are not a description of the running code.
+This note describes the evaluation and Streamlit system implemented on `feat/pjm-screening-layer`, plus the later local FastAPI and React runtimes. `PROJECT_CONTEXT.md` sections 3, 7, and 12 still name the planned stack, including MLflow, SHAP, and XGBoost. Those three names are not a description of the running code. A portable Docker recipe does exist and is retained as a template.
+
+## Current runtime and retired public deployment
+
+Supported use is local. Nothing in the application source calls a hosted InfraLens service unless an operator sets that origin explicitly.
+
+| Runtime | How it starts | What it uses |
+| --- | --- | --- |
+| Streamlit demo | `python -m streamlit run src/infralens/demo/app.py` after `pip install -e ".[dev,demo]"` | Committed holdout summary, and the four local caches when they exist. Sections 4–6 describe this page. |
+| FastAPI adapter | `python -m uvicorn infralens.api.app:app` after `pip install -e ".[api]"` | Read-only routes under `/api/v1`: status, evaluation summary, EIA history, holdout, holdout cases, finance scenarios, PJM catalog, and PJM screen. Default listen address is `127.0.0.1:8000`. It does not train or score a model. |
+| React frontend | `npm run dev` in `frontend/` | Vite on port 5173. `resolveApiBaseUrl` in `frontend/src/api/client.ts` returns `http://127.0.0.1:8000` when `VITE_API_BASE_URL` is unset. |
+
+Host checks stay off unless `RENDER=true`, `RENDER_EXTERNAL_HOSTNAME`, or `INFRALENS_ALLOWED_HOSTS` is set. CORS stays an explicit allowlist in `INFRALENS_CORS_ORIGINS`. Local development sets that list to the Vite origins and leaves the Render variables unset.
+
+The Vercel frontend, Render private API, and Cloudflare Tunnel checked on 2026-10-20 were decommissioned on 2026-11-03. `docs/public_release_validation.md` remains that October 20 record, merged in pull request #6 (`895b5368cb3729953df1218346b78b39bec948e4`). `docs/portable_deployment.md`, `Dockerfile`, `render.yaml`, `frontend/vercel.json`, and `deploy/` remain the redeployment template. They are not a running deployment. Shutdown facts are in `docs/infrastructure_decommission_2026_11_03.md`.
 
 InfraLens supports a screening conversation for VA, PA, OH, MD, and NJ. It has two layers. The EIA layer evaluates a frozen 12-month-ahead commercial-price model against an availability-adjusted seasonal-naive baseline. The PJM layer shows one public zone-year vintage of summer peak, Table B-9, and Table B-9b. The finance form turns a stated cents-per-kWh price into an annual energy charge. The layers do not feed each other.
 
@@ -146,7 +160,7 @@ Parsing the PJM workbooks uses the Python standard library (`zipfile` and `xml.e
 
 Outside this implementation:
 
-- Docker, MLflow, SHAP, and XGBoost. MLflow remains deferred in `DECISIONS.md` (2026-09-29) and `TASKS.md`.
+- MLflow, SHAP, and XGBoost. MLflow remains deferred in `DECISIONS.md` (2026-09-29) and `TASKS.md`. The Docker recipe in `Dockerfile` is a retained local and redeploy template. It is not a running public service after the 2026-11-03 retirement.
 - A tariff engine, a discounted cash flow, a risk score, and an EIA–PJM geographic join.
 - The 2024 PDF parser listed as a later slice in `TASKS.md`.
 - A forward production forecast. The holdout command stays closed.

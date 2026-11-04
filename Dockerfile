@@ -1,4 +1,6 @@
 # syntax=docker/dockerfile:1
+# Retired hosted use, 2026-11-03. These targets remain a local image recipe
+# and a future redeploy recipe. They are not connected to a live Render service.
 # Two image targets from one file.
 # `portable` is the last-verified standalone API. `docker build --target portable`
 # keeps that command and does not install cloudflared.
