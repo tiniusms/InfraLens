@@ -11,7 +11,11 @@ Python package plus EIA monthly commercial retail-sales history for VA, PA, OH, 
 A Streamlit page shows that FAIL result, the observed commercial-price history, the closed holdout comparison, the annual cost form, and a PJM zone-year screening tab. The price charts are historical evaluation. PJM zones are not joined to EIA states.
 
 Primary geography: PJM state footprint (user-facing comparison initially VA, PA, OH, MD, NJ).  
-Due: 25 October 2026. Fallback project: RateLens (FDIC/FRED NIM forecasting) if public-data feasibility fails.
+Capstone due: 25 October 2026. The academic capstone is complete. Fallback project: RateLens (FDIC/FRED NIM forecasting) if public-data feasibility fails; the fallback was not used.
+
+## Development after the capstone
+
+InfraLens continues as an independently developed AI infrastructure-analysis product. Local development is the supported workflow, and public deployment remains retired. Claude Code is the primary implementation, testing, and Git development agent; Cursor is no longer required. Version 2 has no approved scope or evaluation criteria yet. A Version 2 forecasting improvement cannot be claimed without a new preregistered evaluation. See `DECISIONS.md`, 2026-11-04.
 
 ## Current deployment status
 
@@ -36,7 +40,7 @@ InfraLens is a historical evaluation, a deterministic hypothetical cost calculat
 | `ARCHITECTURE.md` | Implemented components and data flow |
 | `RISK_REGISTER.md` | Measured failures and remaining limitations |
 | `LITERATURE.md` | Verified source and methodology evidence index, not the complete APA portfolio |
-| `CLAUDE.md` / `.cursor/rules/` | Thin adapters that point back to the files above |
+| `CLAUDE.md` / `.cursor/rules/` | Thin adapters that point back to the files above. `CLAUDE.md` serves the primary agent; the Cursor rule is optional |
 
 GitHub is authoritative. Chat histories are not.
 

@@ -1,5 +1,12 @@
 # InfraLens Current Tasks
 
+## Claude Code development handoff (2026-11-04)
+- [x] Fast-forward local `main` to `origin/main` at `44f45a8` (pull request #7) and confirm its tree matches the retirement branch.
+- [x] Run the local checks with Claude Code in `.venv-arm64`: 203 Python tests passed with the final holdout excluded, 41 frontend tests passed, and lint and build passed.
+- [x] Record the completed capstone, Claude Code as primary agent, and the Version 2 approval gate in `DECISIONS.md`, `AGENTS.md`, `CLAUDE.md`, `PROJECT_CONTEXT.md`, and `README.md`.
+- [ ] Approve Version 2 scope and evaluation criteria in a dated `DECISIONS.md` entry before Version 2 feature work.
+- [ ] Preregister a new Version 2 forecasting evaluation before any performance claim. The 2026-10-04 holdout stays closed.
+
 ## Hosting retirement and Claude Code preparation (2026-11-03)
 - [x] Record the November 3, 2026 public-hosting retirement without altering the October 20, 2026 validation merged in pull request #6.
 - [x] Confirm local API and frontend defaults do not call the retired Vercel, Render, or Cloudflare hosts.
