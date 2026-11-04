@@ -1,6 +1,8 @@
 # InfraLens - Project Context and AI Tool Onboarding
 
 ## 1. Project status
+**Status update (2026-11-04):** The academic capstone is complete. Its final evaluation is closed and recorded in `EVALUATION.md` and in the 2026-10-04 entry of `DECISIONS.md`. InfraLens continues as an independently developed AI infrastructure-analysis product, developed locally with Claude Code as the primary development agent. Public deployment remains retired. Version 2 scope and evaluation criteria have not been approved yet (`DECISIONS.md`, 2026-11-04). The rest of this file is the original capstone brief. Only the tool roles in section 9 and rule 10 in section 10 were updated on 2026-11-04.
+
 **Primary capstone:** InfraLens - Explainable AI for Power-Cost Forecasting and Capital-Risk Screening of Data Center Locations.
 
 **Fallback:** RateLens - Explainable bank net-interest-margin forecasting using FDIC/FRED data.
@@ -79,10 +81,10 @@ Platform-specific files (`CLAUDE.md`, Cursor rules) should point back to `AGENTS
 Project management, scope control, domain learning, research synthesis, statistics/evaluation design, financial-analysis explanation, APA drafting, and final defense preparation.
 
 ### Cursor
-Primary implementation environment for Python, tests, refactors, data-pipeline work, Streamlit, and repository-local iteration. Cursor must read `AGENTS.md`, `PROJECT_CONTEXT.md`, and `DECISIONS.md` before major changes.
+Primary implementation environment during the capstone. No longer required as of 2026-11-04. `.cursor/rules/infralens.mdc` stays as an optional pointer to `AGENTS.md`.
 
 ### Claude / Claude Code
-Supported implementation and review environment, including standalone Claude Code. Read `AGENTS.md` before editing. Use it for implementation, debugging, refactoring, test review, and adversarial critique. It should not silently redefine scope or metrics. Public hosting was retired on 2026-11-03. Develop with the local commands in `README.md`, and do not call retired production hosts.
+Primary implementation, testing, and Git development agent as of 2026-11-04. Read `AGENTS.md`, `PROJECT_CONTEXT.md`, and `DECISIONS.md` before major changes. Use it for implementation, debugging, refactoring, tests, branch and commit work, and adversarial review. It works on dedicated branches and does not push, open pull requests, merge, or deploy without the project owner's approval. It should not silently redefine scope or metrics. Public hosting was retired on 2026-11-03. Develop with the local commands in `README.md`, and do not call retired production hosts.
 
 ### Perplexity
 Rapid discovery of recent academic/industry sources. Treat it as a discovery engine; verify important claims against original papers, agencies, or primary documentation before use.
@@ -103,7 +105,7 @@ The actual source of truth. Chat histories are not authoritative project state.
 7. Prefer the simplest model that wins out-of-sample.
 8. Every modeling claim must point to a reproducible experiment.
 9. Every dashboard output must show data date, model version, and assumptions.
-10. If an AI assistant proposes a major new feature, first ask whether it improves the intended analyst decision and whether it is feasible before Oct. 25.
+10. If an AI assistant proposes a major new feature, first ask whether it improves the intended analyst decision and whether it fits scope approved in `DECISIONS.md`. (Capstone wording: "feasible before Oct. 25.")
 
 ## 11. Data feasibility gate
 Before committing to full InfraLens implementation, verify:
