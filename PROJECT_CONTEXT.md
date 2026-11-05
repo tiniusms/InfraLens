@@ -1,7 +1,9 @@
 # InfraLens - Project Context and AI Tool Onboarding
 
 ## 1. Project status
-**Status update (2026-11-04):** The academic capstone is complete. Its final evaluation is closed and recorded in `EVALUATION.md` and in the 2026-10-04 entry of `DECISIONS.md`. InfraLens continues as an independently developed AI infrastructure-analysis product, developed locally with Claude Code as the primary development agent. Public deployment remains retired. Version 2 scope and evaluation criteria have not been approved yet (`DECISIONS.md`, 2026-11-04). The rest of this file is the original capstone brief. Only the tool roles in section 9 and rule 10 in section 10 were updated on 2026-11-04.
+**Status update (2026-11-05):** The Version 2 charter, `docs/version_2_charter.md`, is ratified in the 2026-11-05 entry of `DECISIONS.md`. Version 2 balances electricity-price forecasting, PJM infrastructure screening, financial decision support, and product engineering for VA, PA, OH, MD, and NJ, with local-only development. Phase 1 (engineering foundation) is authorized once the ratification is merged into `main`, under the acceptance criteria in `TASKS.md`. Phase 3 forecasting claims, material financial assumptions, new geography, public deployment, and paid infrastructure need separate dated decisions. Sections 2–12 below remain the original capstone brief and do not define Version 2 scope.
+
+**Status update (2026-11-04):** The academic capstone is complete. Its final evaluation is closed and recorded in `EVALUATION.md` and in the 2026-10-04 entry of `DECISIONS.md`. InfraLens continues as an independently developed AI infrastructure-analysis product, developed locally with Claude Code as the primary development agent. Public deployment remains retired. The rest of this file is the original capstone brief. Only the tool roles in section 9 and rule 10 in section 10 were updated on 2026-11-04.
 
 **Primary capstone:** InfraLens - Explainable AI for Power-Cost Forecasting and Capital-Risk Screening of Data Center Locations.
 
@@ -93,7 +95,7 @@ Rapid discovery of recent academic/industry sources. Treat it as a discovery eng
 Optional secondary long-context review for large reports, documentation consistency, or alternative critique. Use only where it adds value.
 
 ### GitHub
-The actual source of truth. Chat histories are not authoritative project state.
+The actual source of truth. Chat histories are not authoritative project state. GitHub `main` is the authoritative committed baseline; local uncommitted work must be inspected and protected rather than overwritten (2026-11-05).
 
 ## 10. Rules for all AI collaborators
 1. Never change the target, scope, success metrics, or evaluation split without recording the change in `DECISIONS.md`.

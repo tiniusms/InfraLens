@@ -52,6 +52,15 @@ The academic capstone is complete. InfraLens continues as an independently devel
 - Claude Code is the primary implementation, testing, and Git development agent. Cursor is no longer required.
 - Local development is the supported workflow. Public deployment remains retired.
 - Work on a dedicated branch. Do not push, open a pull request, merge, or deploy without the project owner's approval.
-- Version 2 work needs a dated `DECISIONS.md` entry that approves its scope and evaluation criteria before it starts.
 - Do not claim a Version 2 forecasting improvement without a new preregistered evaluation. The 2026-10-04 final holdout stays closed and must not be reused for selection or tuning.
 - Original capstone findings and dated decisions are historical records. Add new entries; do not rewrite earlier ones.
+
+## Version 2 governance (ratified 2026-11-05)
+The Version 2 charter is `docs/version_2_charter.md`, ratified in the 2026-11-05 entry of `DECISIONS.md`.
+
+- GitHub `main` is the authoritative committed baseline. Local uncommitted work, untracked files, and stashes must be inspected and protected before any branch switch, reset, or cleanup.
+- Phase 1 (engineering foundation) is authorized once the ratification is merged into `main`, under the measurable acceptance criteria in `TASKS.md`. That authorization does not approve every proposed change: each implementation task stays scoped, on its own branch, validated, and reviewed before merging.
+- Phase 3 forecasting performance claims need a separate, dated preregistration decision that defines the target, data, forecast origin, feature availability, baseline comparisons, evaluation windows, metrics, numeric thresholds, and untouched evaluation data. The seasonal-naive and regularized-linear comparisons above remain required.
+- Material financial assumptions, including discounted multi-year scenario methodology, need their own dated assumptions decision before implementation.
+- Geography stays VA, PA, OH, MD, and NJ. Texas/ERCOT and any other region are unapproved future scope that need a scope decision and data-validity review.
+- Public deployment and paid infrastructure stay unapproved.
