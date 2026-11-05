@@ -15,7 +15,9 @@ Capstone due: 25 October 2026. The academic capstone is complete. Fallback proje
 
 ## Development after the capstone
 
-InfraLens continues as an independently developed AI infrastructure-analysis product. Local development is the supported workflow, and public deployment remains retired. Claude Code is the primary implementation, testing, and Git development agent; Cursor is no longer required. Version 2 has no approved scope or evaluation criteria yet. A Version 2 forecasting improvement cannot be claimed without a new preregistered evaluation. See `DECISIONS.md`, 2026-11-04.
+InfraLens continues as an independently developed AI infrastructure-analysis product. Local development is the supported workflow, and public deployment remains retired. Claude Code is the primary implementation, testing, and Git development agent; Cursor is no longer required. GitHub `main` is the authoritative committed baseline.
+
+The Version 2 charter is [`docs/version_2_charter.md`](docs/version_2_charter.md), ratified in `DECISIONS.md` on 2026-11-05. It balances forecasting, PJM screening, financial decision support, and product engineering for VA, PA, OH, MD, and NJ. Phase 1 (engineering foundation) is authorized once the ratification is merged into `main`, under the acceptance criteria in `TASKS.md`. A Version 2 forecasting improvement cannot be claimed without a separately approved, preregistered evaluation. Discounted multi-year finance, new geography such as Texas/ERCOT, public deployment, and paid infrastructure each need their own decision. Version 1 results remain unchanged.
 
 ## Current deployment status
 

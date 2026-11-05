@@ -1,11 +1,29 @@
 # InfraLens Current Tasks
 
+## Version 2 Phase 1 — Engineering foundation (authorized 2026-11-05)
+Governance: `docs/version_2_charter.md` and `DECISIONS.md`, 2026-11-05. Phase 1 work starts only after that ratification is merged into `main`. Each implementation task below still needs its own scoped branch, validation evidence, and owner review before merging. Phase 1 authorization does not approve every proposed engineering change.
+
+Milestone acceptance criteria. Phase 1 is complete only when all seven hold:
+- [ ] 1. **Python CI.** A GitHub Actions workflow runs `python -m pytest tests --ignore=tests/test_final_holdout.py` on every pull request to `main` and on every push to `main`, and the run reports 0 failures and 0 errors. It never runs `tests/test_final_holdout.py` or `python -m infralens.evaluation.final_holdout`.
+- [ ] 2. **Frontend CI.** The same automation runs `npm ci`, `npm test`, `npm run lint`, and `npm run build` in `frontend/` on the same triggers, and all four exit with status 0.
+- [ ] 3. **Regression preservation.** No currently passing test is deleted, weakened, marked skip, or marked xfail to make CI pass. On a machine with the four gitignored caches, the non-holdout suite still reports at least 203 passed and 0 failed, and `npm test` at least 41 passed. In CI without those caches, any skip must be one of the existing missing-cache skips, with its reason shown (`RISK_REGISTER.md`, R7).
+- [ ] 4. **Native Apple Silicon setup.** `README.md` documents creating an arm64 Python 3.11+ virtual environment, checking that `python -c "import platform; print(platform.machine())"` prints `arm64`, installing `.[dev,demo,api]`, and running the checks in criteria 1–2. A fresh environment built only from those steps passes them. The x86_64 `.venv` problem found on 2026-11-04 is either fixed or documented.
+- [ ] 5. **Consistent governance and development docs.** `CLAUDE.md`, `AGENTS.md`, `PROJECT_CONTEXT.md`, `README.md`, `TASKS.md`, and `DECISIONS.md` agree on the Version 2 status, phase gates, and local commands. No current-guidance file describes a retired host as live or Cursor as required.
+- [ ] 6. **Historical evidence unchanged.** Compared with the ratification merge commit, there is no diff in `docs/final_eia_holdout_oneshot.json` (SHA-256 `5b116d9d0eaba5269f5afab71f60c826f4553174fb330e6e8fe80dfb6eba1393`), `docs/public_release_validation.md`, `docs/infrastructure_decommission_2026_11_03.md`, the recorded results in `EVALUATION.md` and `EXPERIMENTS.md`, or any `DECISIONS.md` entry dated before the change. The final holdout is not rerun and local holdout artifacts are not regenerated.
+- [ ] 7. **No hosted or paid services.** Phase 1 adds no deployment workflow, hosting-provider secret, paid runner, public endpoint, or domain. CI uses only GitHub-hosted Actions within the plan's included usage. Any expected cost beyond that needs owner approval first.
+
+## Version 2 gates that need a separate dated decision
+- [ ] Phase 3 forecasting preregistration: target, data, forecast origin, feature availability, baseline comparisons (seasonal-naive and regularized-linear remain required), evaluation windows, metrics, numeric thresholds, and untouched evaluation data. No performance claim before it is approved. The 2026-10-04 holdout stays closed.
+- [ ] Financial assumptions decision for discounted multi-year scenarios (discount rate, horizon, escalation, units) before any implementation.
+- [ ] Any new geographic coverage, including Texas/ERCOT (see "Later / Stretch"), needs a scope decision and data-validity review.
+- [ ] Any public deployment or paid infrastructure.
+
 ## Claude Code development handoff (2026-11-04)
 - [x] Fast-forward local `main` to `origin/main` at `44f45a8` (pull request #7) and confirm its tree matches the retirement branch.
 - [x] Run the local checks with Claude Code in `.venv-arm64`: 203 Python tests passed with the final holdout excluded, 41 frontend tests passed, and lint and build passed.
 - [x] Record the completed capstone, Claude Code as primary agent, and the Version 2 approval gate in `DECISIONS.md`, `AGENTS.md`, `CLAUDE.md`, `PROJECT_CONTEXT.md`, and `README.md`.
-- [ ] Approve Version 2 scope and evaluation criteria in a dated `DECISIONS.md` entry before Version 2 feature work.
-- [ ] Preregister a new Version 2 forecasting evaluation before any performance claim. The 2026-10-04 holdout stays closed.
+- [x] Approve Version 2 scope in a dated `DECISIONS.md` entry before Version 2 feature work. Done by the 2026-11-05 charter ratification. Evaluation criteria are still gated (see "Version 2 gates").
+- [ ] Preregister a new Version 2 forecasting evaluation before any performance claim. The 2026-10-04 holdout stays closed. Tracked as the Phase 3 gate above.
 
 ## Hosting retirement and Claude Code preparation (2026-11-03)
 - [x] Record the November 3, 2026 public-hosting retirement without altering the October 20, 2026 validation merged in pull request #6.
@@ -45,9 +63,10 @@
 
 ## Later / Deferred
 - MLflow tracking. Deferred 2026-09-29. `mlruns/` is gitignored, and the development evidence is already in `EVALUATION.md`, `EXPERIMENTS.md`, and `DECISIONS.md`. Do not add MLflow as a new tuning loop.
+- Discounted multi-year electricity cost. Charter workstream C, Phase 4. Needs its own dated financial-assumptions decision before implementation. The current calculator stays an annual energy-charge identity.
 
 ## Later / Stretch
 - [ ] Utility-specific tariff enrichment.
 - [ ] Automated FERC/state regulatory extraction.
 - [ ] EPA/brownfield map integration.
-- [ ] Texas/ERCOT expansion.
+- [ ] Texas/ERCOT expansion. Unapproved future scope: needs a separate scope decision and data-validity review (`docs/version_2_charter.md`, section 4).
