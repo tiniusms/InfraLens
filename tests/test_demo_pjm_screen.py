@@ -13,6 +13,7 @@ from infralens.demo.pjm_screen import (
     GEOGRAPHIC_WARNING,
     LARGE_LOAD_WARNING,
     MISSING_WORKBOOKS,
+    RETRIEVAL_UNAVAILABLE,
     ScreeningDisplay,
     load_screening_tables,
     local_workbook_retrieved_at,
@@ -24,6 +25,39 @@ from infralens.demo.pjm_screen import (
 from infralens.finance.annual_cost import EIA_MODEL_PRICE_WARNING
 from infralens.screening.pjm_b1 import PjmB1Error
 from infralens.screening.pjm_view import PjmViewError, ScreeningProvenance, ZoneYearScreening
+
+_BIRTH_ATTRIBUTES = ("st_birthtime", "st_birthtime_ns")
+
+
+class _BirthTimeStat:
+    """A real ``os.stat_result`` with the file-creation time set or removed.
+
+    macOS reports ``st_birthtime``; Python on Linux does not. Tests that exercise
+    the creation-time rule set it explicitly so they behave the same on both.
+    """
+
+    def __init__(self, real: object, birth: float | None) -> None:
+        self._real = real
+        self._birth = birth
+
+    def __getattr__(self, name: str) -> object:
+        if name in _BIRTH_ATTRIBUTES:
+            if self._birth is None:
+                raise AttributeError(name)
+            return self._birth if name == "st_birthtime" else int(self._birth * 1_000_000_000)
+        return getattr(self._real, name)
+
+
+def _set_birth_times(monkeypatch: pytest.MonkeyPatch, births: dict[str, float] | None) -> None:
+    """Report the given creation time per file name, or none at all (as on Linux)."""
+
+    real_stat = Path.stat
+
+    def stat(self: Path, *args: object, **kwargs: object) -> _BirthTimeStat:
+        birth = None if births is None else births.get(self.name)
+        return _BirthTimeStat(real_stat(self, *args, **kwargs), birth)
+
+    monkeypatch.setattr(Path, "stat", stat)
 
 
 def test_aep_cutoffs_match_the_cached_workbooks() -> None:
@@ -87,13 +121,37 @@ def test_date_before_the_2025_release_is_unpublished() -> None:
     assert "public" in shown.unavailable_reason
 
 
-def test_missing_or_malformed_workbook_does_not_invent_a_vintage(tmp_path: Path) -> None:
+def test_missing_or_malformed_workbook_does_not_invent_a_vintage(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     with pytest.raises(DemoDataError, match="not on this machine"):
         load_screening_tables(tmp_path)
-    for name in ("2025-load-report-tables.xlsx", "2026-load-report-tables.xlsx"):
+    names = ("2025-load-report-tables.xlsx", "2026-load-report-tables.xlsx")
+    for name in names:
         (tmp_path / name).write_bytes(b"")
+    _set_birth_times(monkeypatch, {name: 1_760_000_000.0 for name in names})
     with pytest.raises(PjmB1Error, match="Not an xlsx"):
         load_screening_tables(tmp_path)
+
+
+def test_missing_creation_time_is_reported_not_invented(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    names = ("2025-load-report-tables.xlsx", "2026-load-report-tables.xlsx")
+    for name in names:
+        (tmp_path / name).write_bytes(b"")
+    _set_birth_times(monkeypatch, None)
+    paths = tuple(tmp_path / name for name in names)
+    with pytest.raises(DemoDataError) as missing:
+        local_workbook_retrieved_at(paths)
+    assert str(missing.value) == RETRIEVAL_UNAVAILABLE
+    with pytest.raises(DemoDataError) as before_parse:
+        load_screening_tables(tmp_path)
+    assert str(before_parse.value) == RETRIEVAL_UNAVAILABLE
+    _set_birth_times(monkeypatch, {names[0]: 1_760_000_000.0})
+    with pytest.raises(DemoDataError) as one_missing:
+        local_workbook_retrieved_at(paths)
+    assert str(one_missing.value) == RETRIEVAL_UNAVAILABLE
 
 
 def test_unknown_zone_is_rejected_and_view_errors_are_not_hidden(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -145,7 +203,9 @@ def test_display_keeps_zero_and_negative_measures_separate() -> None:
     assert "decimal × 100" in CAGR_PERCENT_LABEL
 
 
-def test_file_identity_uses_size_and_creation_time(tmp_path: Path) -> None:
+def test_file_identity_uses_size_and_creation_time(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     path = tmp_path / "2025-load-report-tables.xlsx"
     path.write_bytes(b"abc")
     other = tmp_path / "2026-load-report-tables.xlsx"
@@ -153,8 +213,15 @@ def test_file_identity_uses_size_and_creation_time(tmp_path: Path) -> None:
     first = workbook_identity(path)
     path.write_bytes(b"abcd")
     assert workbook_identity(path) != first
+    earlier, later = 1_760_000_000.0, 1_760_086_400.0
+    _set_birth_times(monkeypatch, {path.name: earlier, other.name: later})
     retrieval = local_workbook_retrieved_at((path, other))
     assert retrieval.loader_retrieved_at.tzinfo is timezone.utc
+    assert retrieval.loader_retrieved_at == datetime.fromtimestamp(later, tz=timezone.utc)
+    assert retrieval.file_creation_times_utc == (
+        (path.name, datetime.fromtimestamp(earlier, tz=timezone.utc).isoformat()),
+        (other.name, datetime.fromtimestamp(later, tz=timezone.utc).isoformat()),
+    )
     assert "not a PJM publication date" in retrieval.note
     assert MISSING_WORKBOOKS.startswith("The official 2025 or 2026")
 
