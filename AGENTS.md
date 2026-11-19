@@ -7,7 +7,7 @@ Read `PROJECT_CONTEXT.md` and `DECISIONS.md` before proposing or implementing ma
 2. Preserve point-in-time validity and prevent leakage.
 3. Prefer reproducible evidence over model complexity.
 4. Keep financial calculations deterministic and testable.
-5. Keep changes small, reviewable, and inside scope approved in `DECISIONS.md`. The capstone deadline of October 25, 2026 has passed and the capstone is complete.
+5. Keep changes small, reviewable, and inside scope approved in `DECISIONS.md`.
 
 ## Non-negotiable rules
 - Do not change the target, geography, success criteria, or evaluation split without a dated entry in `DECISIONS.md`.
@@ -59,8 +59,9 @@ The academic capstone is complete. InfraLens continues as an independently devel
 The Version 2 charter is `docs/version_2_charter.md`, ratified in the 2026-11-05 entry of `DECISIONS.md`.
 
 - GitHub `main` is the authoritative committed baseline. Local uncommitted work, untracked files, and stashes must be inspected and protected before any branch switch, reset, or cleanup.
-- Phase 1 (engineering foundation) is authorized once the ratification is merged into `main`, under the measurable acceptance criteria in `TASKS.md`. That authorization does not approve every proposed change: each implementation task stays scoped, on its own branch, validated, and reviewed before merging.
+- The ratification merged into `main` as `77575d5` (pull request #9). Phase 1 (engineering foundation) is authorized under the measurable acceptance criteria in `TASKS.md`. That authorization does not approve every proposed change: each implementation task stays scoped, on its own branch, validated, and reviewed before merging.
 - Phase 3 forecasting performance claims need a separate, dated preregistration decision that defines the target, data, forecast origin, feature availability, baseline comparisons, evaluation windows, metrics, numeric thresholds, and untouched evaluation data. The seasonal-naive and regularized-linear comparisons above remain required.
 - Material financial assumptions, including discounted multi-year scenario methodology, need their own dated assumptions decision before implementation.
 - Geography stays VA, PA, OH, MD, and NJ. Texas/ERCOT and any other region are unapproved future scope that need a scope decision and data-validity review.
 - Public deployment and paid infrastructure stay unapproved.
+- Phases 2–5 are not yet scoped. Each needs owner approval of its scope and acceptance criteria before work starts (`TASKS.md`, "Version 2 phase roadmap").

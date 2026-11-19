@@ -4,6 +4,8 @@ The text below is the owner-approved charter of 2026-11-05, recorded word for wo
 Only Markdown structure was added (headings and list markers). Ratification is the
 2026-11-05 entry in DECISIONS.md. Phase 1 acceptance criteria are in TASKS.md.
 Do not edit the charter text; record later changes as new dated decisions.
+Adoption: the ratification pull request #9 merged into `main` as `77575d5` on
+2026-11-05. The "pending" status lines below are the approved text and stay unchanged.
 -->
 
 # InfraLens Version 2 — Project Charter
