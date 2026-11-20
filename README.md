@@ -46,14 +46,133 @@ InfraLens is a historical evaluation, a deterministic hypothetical cost calculat
 
 GitHub is authoritative. Chat histories are not.
 
+## Native Apple Silicon setup
+
+These steps set up development on an Apple Silicon (arm64) Mac from a fresh clone and run the same checks as CI (`.github/workflows/ci.yml`). Run each command from the repository root unless the step changes into `frontend/`.
+
+### 1. Confirm the shell is native arm64
+
+```bash
+uname -m                          # must print arm64
+sysctl -n sysctl.proc_translated  # must print 0; 1 means this shell runs under Rosetta
+```
+
+If `uname -m` prints `x86_64`, the terminal is running under Rosetta. Turn off "Open using Rosetta" for the terminal app (Finder, Get Info), open a new window, and check again.
+
+### 2. Create an arm64 Python 3.11+ virtual environment
+
+A virtual environment keeps the architecture of the Python that creates it, so check that interpreter first:
+
+```bash
+python3 -c "import platform, sys; print(platform.machine(), sys.version.split()[0])"
+```
+
+It must print `arm64` and version 3.11 or later. If it prints `x86_64`, that `python3` is an Intel build, such as an Intel Miniconda or a Homebrew install under `/usr/local`. Use an arm64 Python instead, such as the python.org macOS installer (universal2) or Homebrew under `/opt/homebrew`. Then:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -c "import platform; print(platform.machine())"   # must print arm64
+```
+
+If a `.venv` already exists, check it before using it (see "Troubleshooting: an x86_64 `.venv`" below). Do not reuse an x86_64 `.venv`, and do not create the new environment on top of it. The repository `.gitignore` covers `.venv/` and `venv/`. An environment with any other name stays out of git only through the `.gitignore` file that `venv` writes inside it.
+
+### 3. Install with the CI constraints
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev,demo,api]" -c requirements-api.txt
+python -m pip check
+```
+
+`requirements-api.txt` is used as a pip constraints file, as in CI, so the shared API packages resolve to the pinned, tested versions. Without it a fresh resolve can pick a newer release (on 2026-11-13, `annotated-doc` 0.0.6 instead of the pinned 0.0.5), and the pin check in `tests/test_portable_deploy.py` fails. `pip check` must report no broken requirements.
+
+### 4. Run the Python regression suite
+
+```bash
+python -m pytest tests --ignore=tests/test_final_holdout.py
+```
+
+Never run `tests/test_final_holdout.py` or `python -m infralens.evaluation.final_holdout`. The one-shot final holdout ran on 2026-10-04 and is closed. A bare `pytest` also collects `tests/test_final_holdout.py`, so always pass `--ignore=tests/test_final_holdout.py`.
+
+Expected results on 2026-11-20 (the counts change when tests are added):
+
+- With all four gitignored data caches listed under "Portable mode and local full-data mode": 204 passed, 0 failed, 1 warning.
+- In a fresh clone without those caches: 190 passed, 14 skipped, 0 failed, 1 warning. Every skip names a missing cache (EIA price history, holdout cases, or PJM workbooks); see `RISK_REGISTER.md` R7. Add `-rs` to print the reasons. Any other skip, or any failure, needs investigation.
+
+The warning is the existing Starlette `httpx` test-client deprecation.
+
+### 5. Install Node.js 24 and run the frontend checks
+
+CI uses Node.js 24. The repository has no `.nvmrc` or `engines` field, so check the installed version yourself. Install Node.js 24 for macOS (arm64 or universal) if needed, then:
+
+```bash
+node -v              # v24.x
+node -p process.arch # arm64
+cd frontend
+npm ci
+npm test
+npm run lint
+npm run build
+cd ..
+```
+
+Expected results: `npm test` reports 41 passed, and lint and build exit with status 0. The build prints the existing chunk-size warning (about 756 kB), and `npm ci` may print a deprecation notice for `eslint@9.39.5` and `npm warn install-scripts` notices. None of these is a failure.
+
+### 6. Start the local app
+
+The environment above runs the commands documented in "Portable demo" and "Local API and React frontend" below. In short:
+
+```bash
+python -m streamlit run src/infralens/demo/app.py
+```
+
+```bash
+INFRALENS_CORS_ORIGINS=http://127.0.0.1:5173,http://localhost:5173 \
+  python -m uvicorn infralens.api.app:app
+```
+
+Then, in another shell:
+
+```bash
+cd frontend
+npm run dev
+```
+
+### Troubleshooting: an x86_64 `.venv`
+
+Found on 2026-11-04 on an Apple Silicon Mac (`DECISIONS.md`, 2026-11-04).
+
+- **Symptom:** `.venv/bin/python` fails with `Bad CPU type in executable`. On a Mac with Rosetta installed it can instead start and report `x86_64`.
+- **Cause:** the environment was created from an Intel (x86_64) Python, in that case an Intel Miniconda Python 3.13.5. The environment keeps that architecture, and the Mac had no Rosetta to run it.
+- **Check:**
+
+  ```bash
+  file .venv/bin/python
+  .venv/bin/python -c "import platform; print(platform.machine())"
+  grep -E '^(home|executable)' .venv/pyvenv.cfg
+  ```
+
+  `file` must list `arm64`, and `platform.machine()` must print `arm64`. `pyvenv.cfg` shows which Python created the environment.
+- **Fix:** do not reuse that environment, and do not run `python3 -m venv .venv` over it: the packages already installed in it keep their x86_64 builds. Choose one:
+  - Keep the old `.venv` and create a new arm64 environment under another name, then use that name in place of `.venv` from step 2 on:
+
+    ```bash
+    python3 -m venv .venv-arm64
+    source .venv-arm64/bin/activate
+    python -c "import platform; print(platform.machine())"   # must print arm64
+    ```
+
+  - Or delete the old `.venv` yourself and recreate it from an arm64 Python, as in step 2.
+
 ## Portable demo
 
-Python 3.11+ is required. An EIA API key is not required to run the existing demo.
+Python 3.11+ is required. An EIA API key is not required to run the existing demo. On an Apple Silicon Mac, follow "Native Apple Silicon setup" above.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
-python -m pip install -e ".[dev,demo]"
+python -m pip install -e ".[dev,demo]" -c requirements-api.txt
 python -m streamlit run src/infralens/demo/app.py
 ```
 
@@ -66,7 +185,7 @@ The three-tab defense walkthrough, expected example values, and portable-mode li
 The FastAPI adapter and the Vite app talk to each other on this machine. They do not use the retired public hosts. Install the API extra with the demo extra:
 
 ```bash
-python -m pip install -e ".[dev,demo,api]"
+python -m pip install -e ".[dev,demo,api]" -c requirements-api.txt
 INFRALENS_CORS_ORIGINS=http://127.0.0.1:5173,http://localhost:5173 \
   python -m uvicorn infralens.api.app:app
 ```
@@ -104,7 +223,7 @@ A new EIA extract is separate from the demo. Copy `.env.example` to `.env` and s
 
 Raw EIA JSON is written under `data/raw/eia/` and the matching interim Parquet under `data/interim/`. Both filenames share the same UTC retrieval timestamp. There is no mutable “latest” Parquet alias. API keys are never logged; echoed `api_key` fields are redacted before the raw file is saved.
 
-Development checks already produced the frozen comparison: `python -m infralens.evaluation.backtest`, `linear`, `tree`, `intervals`, and `explain`. They are documented in `EVALUATION.md`. Demo startup leaves them unrun. Run tests with `pytest`. The final-holdout command above stays closed.
+Development checks already produced the frozen comparison: `python -m infralens.evaluation.backtest`, `linear`, `tree`, `intervals`, and `explain`. They are documented in `EVALUATION.md`. Demo startup leaves them unrun. Run tests with `python -m pytest tests --ignore=tests/test_final_holdout.py` in an environment installed with `.[dev,demo,api]` (see "Native Apple Silicon setup"). The final-holdout command above stays closed.
 
 ## Implemented stack
 

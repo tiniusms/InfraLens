@@ -4,7 +4,7 @@ The page is a historical evaluation and infrastructure-screening prototype. It i
 
 ## Launch
 
-From the repository root, with the project virtual environment and the `demo` extra installed (`python -m pip install -e ".[dev,demo]"`):
+From the repository root, with the project virtual environment and the `demo` extra installed (`python -m pip install -e ".[dev,demo]" -c requirements-api.txt`):
 
 ```bash
 python -m streamlit run src/infralens/demo/app.py
