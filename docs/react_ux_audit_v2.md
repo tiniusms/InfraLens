@@ -1,0 +1,120 @@
+# InfraLens React UX audit (Version 2)
+
+- **Date:** 2026-11-20
+- **Commit audited:** `main` at `5dafb0d` (pull request #15), checked out on branch `docs/react-ux-audit` in a separate worktree.
+- **Task:** `TASKS.md`, Phase 2, "Parallel task (does not gate Phase 2): React UX audit".
+- **Modes:** (1) portable mode, a fresh worktree without the four gitignored caches; (2) local full-data mode, the same worktree after copying the four caches from the main checkout with `cp -p`. The copies have the same SHA-256 as the originals, and `git check-ignore` confirms that all four stay untracked.
+- **How it was run:** a new arm64 venv inside the worktree (python.org Python 3.13.7), installed with `python -m pip install -e ".[dev,demo,api]" -c requirements-api.txt`. `pip check` was clean. Node.js v24.21.0 arm64 with `npm ci`. The servers ran with the README commands on non-default ports, so they could not collide with the main checkout:
+  - API: `INFRALENS_CORS_ORIGINS=http://127.0.0.1:5183,http://localhost:5183 python -m uvicorn infralens.api.app:app --port 8010`
+  - Frontend: `VITE_API_BASE_URL=http://127.0.0.1:8010 npm run dev -- --port 5183 --host 127.0.0.1`
+- **Browsers:** the app was explored by hand in the Claude desktop app's browser pane. Screenshots came from Playwright 1.65.2, installed only in the worktree venv and not added to any requirements file, driving headless Google Chrome 157. Viewports: 1440×900 (desktop), 2560×1300 (wide), and 390×844 (mobile), in light and dark.
+- **States reached:** every route, loading (API requests held in the browser), error (API process stopped), unavailable (portable mode), the cost-form validation errors, the Ridge holdout quote, PJM screening across 7 zones, forecast years 2025–2046, and pre-publication, current, and invalid as-of dates, a crossing of the 1024 px breakpoint, and an unknown route.
+- **Not done:** no frontend, `src/`, test, workflow, requirements, or data change. No test suite was run. `tests/test_final_holdout.py` and `python -m infralens.evaluation.final_holdout` were not run.
+- **Screenshots:** `../InfraLens-ux-audit-screens/` (outside the repository, not committed). The filename prefix gives the mode (`portable_` or `full_`). In full-page desktop captures the sticky sidebar is drawn partway down the page. That is a capture artifact, not a layout bug.
+
+Priority: **P0** misleads users or breaks a core task. **P1** materially weakens trust, comprehension, or a task. **P2** polish or a lower-impact gap.
+
+**Result: no P0 found. 14 P1 and 26 P2.** Recommended first fixes: US-01 (state lost at the breakpoint), CT-01/VP-01 (number formatting), DE-02 (traceability and uncertainty of the Ridge-quote cost), CT-02/DE-03 (derived CAGR shown as a published value), and ST-01 (blank unknown route).
+
+## Charter checks
+
+| Check | Finding |
+| --- | --- |
+| Version 1 FAIL shown honestly | **Yes.** "Primary criterion: FAIL" is the first and most prominent element on Overview and on Electricity's closed-evaluation section, in red, with "Closed historical evaluation. Not a validated production forecast and not an investment recommendation." The Finance Ridge-quote result repeats the FAIL, the systematic underprediction, and the 0% coverage. Weaknesses: the 0% coverage is a plain "0.0" row on Overview (IH-01), and when the API is down the FAIL disappears (ST-03). |
+| Holdout status shown | **Yes.** "Frozen EIA holdout", "closed historical evaluation", the execution date 2026-10-04, and the runner commit are on Overview. Electricity (full data) adds the forecast-origin and target-month window. The forecast horizon and the window are missing from Overview and from portable mode (DE-01). |
+| Evidence, predictions, assumptions, uncertainty visually distinguishable (charter success criterion, "Product quality") | **Mostly on Electricity, not on Finance or PJM.** The holdout chart separates actuals (solid), Ridge (dashed), seasonal-naive (dotted), and the stored interval (shaded band), with a legend and a role column in the table. On Finance, typed assumptions, model-derived prices, and computed outputs share one visual style, and the stored interval is dropped from the cost output (DE-02). On PJM, a value InfraLens derives sits under "Published value" (CT-02). |
+| Numbers show units, sources, and dates | **Units: yes**, on almost every label (cents/kWh, MW, kWh, USD). **Sources and dates: yes** for the EIA extract (file, publisher, retrieved-at, observed months, "sales month, not the publication date") and for PJM vintages (publication, revision, and availability dates, source URL). **Formatting: no.** Unrounded floats and no thousands separators (CT-01, VP-01). PJM `retrieved_at` is a file-creation time (CT-03, TD-03). |
+
+## Credibility and trust
+
+| ID | Route / view | Observed | Why it matters | Priority | Screenshot |
+| --- | --- | --- | --- | --- | --- |
+| CT-01 | Overview, Electricity, Finance, PJM | Values are printed at full float precision, with float artifacts: Ridge MAE `2.6384726503825626`, relative improvement `-0.9490875034777213`, Ridge quote `12.409630692282953 cents/kWh`, charge `56528349.7294873075056 USD`, PECO CAGR `1.8152627399999999 percent per year`. | Sixteen digits claim a precision that a failed model does not have, and artifacts such as `…99999999` look like bugs to an analyst. Raw values can stay in the tables or downloads. | P1 | `portable_overview_desktop.png`, `full_finance_ridge_quote_result_desktop.png`, `full_pjm_PECO_2030_2026-02-06_desktop.png` |
+| CT-02 | PJM, Published measures | The 10-year summer-peak CAGR sits in the "Published measures" table under the "Published value" column. Its own note says "not a separate published field". The unit column says "decimal per year" while the cell also prints a percent. | This mixes an InfraLens-derived number with PJM-published numbers under a heading that says it is published, which undercuts the provenance discipline that the rest of the page shows. | P1 | `full_pjm_DOM_2030_2026-02-06_desktop.png` |
+| CT-03 | PJM, Source evidence | `retrieved_at` is the later local file-creation time of the two workbooks, so rows from the 2025 workbook show the 2026 workbook's time. Copying the caches into this worktree with `cp -p` moved the 2025 workbook's creation time by about one second (main checkout 18:25:51 UTC, worktree 18:25:52.231 UTC). The page states that this is not a publication date or a download receipt. | The disclosure is honest, but a timestamp that changes when a file is copied is not stable provenance. Phase 2 criterion 2 (TD-03, manifest-based `retrieved_at`) is the fix. The UI should then show the manifest value per workbook. | P1 | `full_pjm_AEP_2026_2025-03-01_desktop.png` |
+| CT-04 | Finance, API down | The holdout-cases error says "Typed prices can still be calculated." Pressing Calculate then fails with "The InfraLens API did not respond. No energy charge is shown." | The page contradicts itself. Typed prices also need the API, because the Python service computes every charge. | P1 | `portable_finance_apidown_after_calculate_desktop.png` |
+| CT-05 | Overview | The copy says "The annual energy charge, in a later phase, is computed by the Python service." The Financial Scenario Studio already exists. | Stale copy makes the page read as out of date. | P2 | `portable_overview_desktop.png` |
+| CT-06 | Overview, Evidence | On first load in full-data mode both PJM workbooks show "Present, unvalidated … measures from this file are not shown". The PJM page then shows measures, because validation runs on the first screen request, after which `/status` reports them as valid. | It reads as a contradiction between two pages. The wording should say that validation runs on first use. | P2 | `full_overview_desktop.png` |
+
+## Information hierarchy
+
+| ID | Route / view | Observed | Why it matters | Priority | Screenshot |
+| --- | --- | --- | --- | --- | --- |
+| IH-01 | Overview | The FAIL banner explains only the MAE gate. That the empirical interval coverage was 0% against a nominal 80%, and that both models systematically underpredicted, appears only as a "0.0" table row. The underprediction sentence exists only on Finance, after a Ridge quote is chosen. | For an analyst, the coverage and bias findings matter more for decisions than the 0.95% MAE gap. They belong in the headline finding. | P1 | `portable_overview_desktop.png`, `full_finance_ridge_quote_result_desktop.png` |
+| IH-02 | Overview | Seven metric rows have equal weight. Ridge MAE, seasonal-naive MAE, and the gate are not grouped as one comparison, and the gate appears twice (`+10` percent and ratio `0.1`). | The reader must assemble the pass/fail logic from separate rows. | P2 | `portable_overview_desktop.png` |
+| IH-03 | Electricity | The observed-history chart does not mark the holdout window (target months 2025-07 to 2026-06) or the forecast origins. The link between the two charts exists only in text. | It is harder to see where the evaluation sits in the price history, for example the 2025–2026 rise that the models missed. | P2 | `full_electricity_VA_desktop.png` |
+| IH-04 | PJM | One zone and one forecast year at a time. Seeing a zone's 2026–2046 path takes 21 dropdown changes. | A per-zone series across forecast years is not a ranking, so it fits the cautions, and it is the view an analyst needs. Not approved scope; a candidate for Phase 4 or 5. | P2 | `full_pjm_DOM_2026_2026-02-06_desktop.png`, `full_pjm_DOM_2046_2026-02-06_desktop.png` |
+
+## Usability
+
+| ID | Route / view | Observed | Why it matters | Priority | Screenshot |
+| --- | --- | --- | --- | --- | --- |
+| US-01 | All routes (shell) | Crossing the 1024 px breakpoint remounts the page. `AppShell.tsx` renders `children` in different tree positions for desktop and mobile. Verified: Electricity MD reverts to VA, and on Finance a typed IT capacity of 300 reverts to 50 and the result disappears. PJM selections reset the same way (by code). Every crossing also refetches. | A tablet rotation or a window resize silently discards the analyst's inputs and results. | P1 | `full_breakpoint_reset_1_MD_at_1440.png`, `full_breakpoint_reset_2_VA_after_900.png`, `full_breakpoint_reset_3_finance_after_900.png` |
+| US-02 | Finance, validation | Operating hours of 9000 is accepted and produces an annual charge. A year has at most 8784 hours. | The form allows a physically impossible assumption and returns a confident number. | P1 | `portable_finance_validation_hours_9000_desktop.png` |
+| US-03 | Finance, validation | Field errors use the same color, size, and weight as the hint text, with no error icon, border, or summary. Focus does not move to the first error (no focus handling in `FinancePage.tsx`). At 1440 px, an error in the scenario fieldsets can be below the fold while the results panel says "Results appear after you calculate." | Users can miss why nothing happened. | P1 | `portable_finance_validation_negative_price_desktop.png`, `portable_finance_validation_blank_capacity_desktop.png` |
+| US-04 | Finance, result | After Calculate, results render at the top of the right column (desktop) or below the button (mobile). The viewport does not move, so at 1440×900 only the tail of the result is visible. | The main output of the page is easy to miss. | P2 | `portable_finance_after_calculate_viewport_desktop.png`, `portable_finance_after_calculate_viewport_mobile.png` |
+| US-05 | Finance, validation | A price of `-5` returns "Enter the energy price in cents per kWh, such as 12," which does not say that negatives are not allowed. An IT capacity of `1e9` returns "Enter IT capacity in MW" although the hint says "There is no upper limit on this page." | The messages do not say what is wrong. | P2 | `portable_finance_validation_negative_price_desktop.png`, `portable_finance_validation_huge_capacity_desktop.png` |
+| US-06 | Finance | A price of `0.12` is accepted as 0.12 cents/kWh (a $546,624 charge). The hint warns against this, but nothing flags an implausible value. | A dollars-for-cents mistake is easy to make and goes unnoticed. | P2 | `portable_finance_validation_dollar_price_desktop.png` |
+| US-07 | PJM | The zone list shows only codes (AE, BGE, DPL…) in PJM's regional order without group labels, so it looks unsorted. There are no utility names. | Analysts outside PJM will not recognize codes such as PL, PS, or DLCO. Names do not imply a state join, so they fit the geographic caution. | P2 | `full_pjm_default_desktop.png` |
+| US-08 | PJM | The as-of date is a free-text field with no date picker. The default `2026-02-06` is unexplained (it is the 2026 vintage's revision date). | It is unclear why that default is used or what to enter. | P2 | `full_pjm_default_desktop.png` |
+| US-09 | Theme switch | LIGHT and DARK look identical whichever is active. The state is exposed only through `aria-pressed`. | Sighted users cannot see the current setting. | P2 | `portable_overview_desktop.png`, `full_electricity_dark_desktop.png` |
+| US-10 | Electricity, portable | The state selector stays active although every panel is unavailable. Changing it only changes "Showing X." | The control promises content the page cannot show in this mode. | P2 | `portable_electricity_desktop.png` |
+
+## Data explanation
+
+| ID | Route / view | Observed | Why it matters | Priority | Screenshot |
+| --- | --- | --- | --- | --- | --- |
+| DE-01 | Overview, Electricity | The forecast horizon (12 months ahead) is never stated. It can only be inferred from origin and target pairs. Overview shows the execution date but not the evaluation window. In portable mode the window appears nowhere. | Without the horizon and window, the MAE figures cannot be interpreted. | P1 | `portable_overview_desktop.png`, `full_electricity_VA_holdout_desktop.png` |
+| DE-02 | Finance, Ridge-quote result | The result labels the baseline price "Closed holdout Ridge prediction" but omits the state, target month, forecast origin, runner or model version, and data date. That case information appears only in the form. The stored 80% residual interval is not carried into the energy charge, so the cost is a single point value. | Charter: users can distinguish evidence, predictions, assumptions, and uncertainty in outputs, and every dashboard output exposes data date, model version, and assumptions (`AGENTS.md`). The decision output loses both. Carrying an interval through is a financial-methodology change that may need its own decision. | P1 | `full_finance_ridge_quote_result_desktop.png` |
+| DE-03 | PJM | "10-year summer-peak CAGR" does not say which ten years. The value is the same for every forecast year of a vintage (DOM: `0.0544340754` for 2026, 2030, and 2046). | Shown next to a single forecast year, it reads as a property of that year. | P1 | `full_pjm_DOM_2030_2026-02-06_desktop.png`, `full_pjm_DOM_2046_2026-02-06_desktop.png` |
+| DE-04 | All routes | Raw identifiers appear in prose: `portable_summary`, `file_existence_only`, `not_applicable`, `closed_prediction`, `final_holdout`, `retrieved_at`, and "The horizontal axis is target_month." | Useful as provenance, but in sentences they read as debug output. Keep them in provenance blocks and use plain labels elsewhere. | P2 | `portable_overview_desktop.png`, `full_electricity_VA_holdout_desktop.png` |
+| DE-05 | Overview, Electricity | "stored share 0.8 (80% as a percent reading)" and similar phrasing recur. | Hard to parse. "80% (stored as 0.8)" says the same thing. | P2 | `full_electricity_VA_holdout_desktop.png` |
+| DE-06 | PJM | AEP, forecast year 2025, as of 2026-11-20 uses the 2025 vintage, because the 2026 report does not cover 2025. The page does not say that a newer vintage exists but does not cover this year. | The selection is correct, but its reason is invisible. | P2 | `full_pjm_AEP_2025_2026-11-20_desktop.png` |
+| DE-07 | Overview, State MAE | Rows do not show which model is lower (VA Ridge 2.35 against seasonal-naive 1.78; MD and NJ favor Ridge). | The descriptive slice is there, but the comparison is left to the reader. | P2 | `portable_overview_desktop.png` |
+| DE-08 | Overview Evidence, unavailable panels | User-facing copy includes maintainer instructions: "Do not download a substitute or rerun the final holdout," "Do not download a substitute from this page." | These are repository rules, not user guidance. The user needs what is missing and what still works. | P2 | `portable_overview_desktop.png`, `portable_pjm_default_desktop.png` |
+
+## Responsive and layout
+
+| ID | Route / view | Observed | Why it matters | Priority | Screenshot |
+| --- | --- | --- | --- | --- | --- |
+| RL-01 | Overview, mobile | The Evidence table squeezes "What this status allows" to a few characters per line and clips it. Measured scroll width is 369 px in a 358 px container, so it barely scrolls. Unlike State MAE, there is no scroll hint. | The column that explains each artifact status is unreadable on a phone. | P1 | `portable_overview_mobile.png`, `full_overview_mobile.png` |
+| RL-02 | Electricity, chart | The last x-axis tick `2026-06` is clipped to `2026-` at 1440 and 2560 px. | The end of the data, a key date, is cut off. | P2 | `full_electricity_VA_desktop.png`, `full_electricity_wide.png` |
+| RL-03 | Electricity, mobile | The holdout chart is 760 px wide in a 356 px scroller, and the y-axis scrolls out of view with the plot. The holdout table is 1716 px wide (11 columns). | Readable, but heavy. A pinned axis, or fewer columns on mobile, would help. | P2 | `full_electricity_MD_holdout_mobile.png` |
+| RL-04 | PJM, desktop | PJM zone and Forecast year have labels to the left of their selects, while As-of date has its label above. | The control row looks misaligned. | P2 | `full_pjm_DOM_2030_2026-02-06_desktop.png` |
+
+## Empty, error, and loading states
+
+| ID | Route / view | Observed | Why it matters | Priority | Screenshot |
+| --- | --- | --- | --- | --- | --- |
+| ST-01 | Unknown route (`/no-such-route`) | A completely blank page with no shell, navigation, or not-found message. `AppRoutes.tsx` has no catch-all route. | A mistyped or stale link strands the user. | P1 | `full_unknown_route_desktop.png`, `portable_unknown_route_desktop.png` |
+| ST-02 | All routes, API down | Error panels have no retry action, so recovery needs a full reload. Casing is inconsistent ("for Price history", "for Frozen criterion", "for closed holdout cases"). | There is no recovery path after a transient failure. | P2 | `portable_electricity_apidown_desktop.png`, `portable_pjm_apidown_desktop.png` |
+| ST-03 | Overview, API down | The FAIL result disappears entirely, because the page keeps no local copy of the committed summary. | Not misleading, since the panel says the connection is unavailable, but the central credibility statement vanishes. | P2 | `portable_overview_apidown_desktop.png` |
+| ST-04 | All routes, loading | Loading states are plain text ("Loading observed prices.") with no skeleton, so the layout jumps when data arrives. `api/client.ts` has no client-side timeout (code inspection). With a hung API, "Loading…" would stay indefinitely. I observed requests held for only 1.2 s. | Long waits look identical to hangs. | P2 | `portable_electricity_loading_desktop.png`, `portable_overview_loading_desktop.png` |
+
+## Visual polish
+
+| ID | Route / view | Observed | Why it matters | Priority | Screenshot |
+| --- | --- | --- | --- | --- | --- |
+| VP-01 | Finance, PJM | No thousands separators: `455520000 kWh`, `54662400 USD`, `-9110400 USD`, `24635 MW`. | In a cost tool, a misread by a factor of 10 is a real risk. | P1 | `portable_finance_result_desktop.png`, `full_pjm_default_desktop.png` |
+| VP-02 | Finance | "Calculate annual energy charge" has the same outline style as the theme and Sections buttons and sits at the end of a long form. | The primary action does not look primary. | P2 | `portable_finance_desktop.png` |
+| VP-03 | PJM, Source evidence | The same URL and `retrieved_at` repeat three times (B1, B-9, B-9b), followed by a long paragraph of timestamps. | Noise hides the one provenance fact that differs, the table name. | P2 | `full_pjm_DOM_2030_2026-02-06_desktop.png` |
+| VP-04 | Finance, result | "OPERATING HOURS 8760" has no unit, and the results use the fixed labels Baseline and Comparison rather than the scenario names the user typed. | Minor inconsistency with the otherwise careful unit labels. | P2 | `portable_finance_result_desktop.png` |
+
+## What works well
+
+- **Honest headline.** The FAIL is the first thing on Overview and in Electricity's evaluation section. It is never softened and repeats wherever a Ridge number is used.
+- **Holdout chart.** Actuals, Ridge, seasonal-naive, and the interval band are separated by line style as well as color, with a legend and a full data table with a role column. The actual line visibly runs above the band, so the 0% coverage is easy to see.
+- **Provenance on the page.** EIA extract filename, publisher, retrieved-at, observed months, and "the period is the sales month, not the publication date". PJM report vintage, original publication, revision, and availability dates, and the source URL. The runner commit and summary source are on Overview.
+- **Point-in-time correctness.** PJM as-of 2024-06-01 returns "Unpublished on this as-of date" rather than a later vintage. 2026-02-30 and `02/06/2026` are rejected as non-calendar dates, and no stale result is shown.
+- **Honest degradation.** In portable mode every missing artifact gets a named unavailable panel, no value is invented, the Ridge-quote radio is disabled, and the cost calculator still runs.
+- **Unit traps called out.** "12 means 12 cents per kilowatt-hour, not 0.12 dollars," "80 means 80 percent … sends the share 0.80," the formula is shown under the result, and a negative difference is not labeled as savings.
+- **Cautions.** PJM states that zones are not states and that B-9 and B-9b are separate measures, not data-center MW, and not additive.
+- **Accessibility basics.** Skip link, a radiogroup with arrow keys for states, `aria-invalid` and `aria-describedby` on fields, `aria-live` on PJM results, a focus-managed mobile navigation sheet, and labeled table scrollers.
+- **Layout.** No page-level horizontal overflow at 390 px. Wide tables and charts scroll inside their own containers with hints. Dark mode is consistent, and charts keep their contrast.
+
+## Screenshot list
+
+All files are in `../InfraLens-ux-audit-screens/` (106 PNG files). The issue tables above cite the most relevant ones.
+
+- **Portable mode (`portable_`, 44):** each route at desktop, mobile, and wide; Overview and Electricity in dark; the mobile fold and navigation sheet; loading for each route; API down for each route at desktop and mobile, and Finance after Calculate with the API down; the Finance default result, the viewport after Calculate, and 9 validation cases; Ridge quote disabled; PJM default at desktop and mobile; the unknown route.
+- **Full-data mode (`full_`, 62):** each route at desktop, mobile, and wide; dark mode; Electricity history and holdout for VA, PA, OH, MD, and NJ (desktop) and VA and MD (mobile); Finance default, result, validation cases, and the Ridge quote selected and calculated; PJM default and 12 zone, year, and as-of combinations (DOM 2026/2030/2046, PECO 2030, BGE 2035, PS 2028, COMED 2030, AEP 2026 as of 2025-03-01 and 2024-06-01, AEP 2025 as of 2026-11-20, and invalid dates); three breakpoint-reset captures; the unknown route.
