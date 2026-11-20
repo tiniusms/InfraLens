@@ -1,0 +1,279 @@
+{
+  "manifest_version": 1,
+  "description": "Provenance and lineage manifest for Version 2 Phase 2 criterion 1 (TASKS.md). Metadata only: listing a file here does not change whether it is tracked or gitignored (that policy is Phase 2 criterion 4). retrieved_at.value is non-null only when a retrieval time was recorded at download time. File-system times are evidence only and appear in observed_local_time, never in retrieved_at.",
+  "fingerprint_algorithm": "sha256",
+  "raw_sources": [
+    {
+      "id": "eia_retail_sales_monthly_com_20260911T190524Z_raw",
+      "path": "data/raw/eia/retail_sales_monthly_com_20260911T190524Z.json",
+      "filename": "retail_sales_monthly_com_20260911T190524Z.json",
+      "source_url": "https://api.eia.gov/v2/electricity/retail-sales/data/",
+      "source_request": {
+        "frequency": "monthly",
+        "facets": {
+          "sectorid": ["COM"],
+          "stateid": ["VA", "PA", "OH", "MD", "NJ"]
+        },
+        "start": "2001-01",
+        "data": ["price", "sales", "revenue"],
+        "api_key": "not stored (redacted in the raw file)"
+      },
+      "publisher": "U.S. Energy Information Administration",
+      "retrieved_at": {
+        "value": "2026-09-11T19:05:24.708930Z",
+        "status": "recorded",
+        "evidence": "Written at download time by src/infralens/data/eia_ingest.py (datetime.now(timezone.utc)) into the raw file's retrieved_at field and its filename stamp 20260911T190524Z, and copied to the retrieved_at column of the interim Parquet."
+      },
+      "retrieval_receipt": null,
+      "observed_local_time": null,
+      "publication": {
+        "original_release_date": null,
+        "revision_date": null,
+        "status": "unverified",
+        "evidence": [
+          "The EIA API v2 response carries no release or publication date. The latest period in this payload is 2026-06. Release timing is researched under Phase 2 criterion 5."
+        ]
+      },
+      "sha256": "e4bf577ca2ef2b8227ba9c015ea6c366986060429d0bf8727b82c954783081d4",
+      "size_bytes": 700120,
+      "licensing_note": "Not yet reviewed. The dataset classification and redistribution terms are decided under Phase 2 criterion 4.",
+      "git_status": "gitignored"
+    },
+    {
+      "id": "pjm_2025_load_report_tables",
+      "path": "data/raw/pjm/2025-load-report-tables.xlsx",
+      "filename": "2025-load-report-tables.xlsx",
+      "source_url": "https://www.pjm.com/-/media/DotCom/planning/res-adeq/load-forecast/2025-load-report-tables.xlsx",
+      "source_request": null,
+      "publisher": "PJM Interconnection",
+      "retrieved_at": {
+        "value": "2026-11-20T22:08:52.810329Z",
+        "status": "recorded",
+        "evidence": "byte-identical copy retrieved from https://www.pjm.com/-/media/DotCom/planning/res-adeq/load-forecast/2025-load-report-tables.xlsx at 2026-11-20T22:08:52.810329Z; original download time (2026-10-14) not recorded; file-system time is evidence only"
+      },
+      "retrieval_receipt": {
+        "method": "HTTP GET with curl (-L --fail) into a temporary directory; SHA-256 compared with the stored file; the copy was deleted after hashing",
+        "started_at": "2026-11-20T22:08:51.942511Z",
+        "completed_at": "2026-11-20T22:08:52.810329Z",
+        "http_status": 200,
+        "http_date": "2026-11-20T22:08:52Z",
+        "http_last_modified": "2025-01-24T18:07:52Z",
+        "http_etag": "a75d949a1afe4a2fa05cda06f9a57f56",
+        "content_length": 409854,
+        "sha256_matches_stored_file": true,
+        "copy_retained": false
+      },
+      "observed_local_time": {
+        "value": "2026-10-14T18:25:51.735684Z",
+        "kind": "macOS st_birthtime of the stored copy",
+        "observed_on": "2026-11-20",
+        "note": "Evidence only. Not a recorded download time and not a PJM publication date."
+      },
+      "publication": {
+        "original_release_date": "2025-01-24",
+        "revision_date": null,
+        "status": "verified",
+        "evidence": [
+          "PJM Load Analysis Subcommittee Load Forecast Reports table lists 2025-01-24 (docs/pjm_ltlf_inventory.md, 2025 row).",
+          "Workbook docProps/core.xml modified 2025-01-24T14:57:18Z (author-set metadata; corroborating).",
+          "HTTP Last-Modified 2025-01-24T18:07:52Z on the 2026-11-20 retrieval (server metadata; corroborating).",
+          "Matches original_release_date and vintage_available_at in src/infralens/screening/pjm_sources.py."
+        ]
+      },
+      "sha256": "a9a797f2d3cf34154db466b74e045d1334dfebede87ec6dc3739805093474ef5",
+      "size_bytes": 409854,
+      "licensing_note": "Not yet reviewed. The dataset classification and redistribution terms are decided under Phase 2 criterion 4.",
+      "git_status": "gitignored"
+    },
+    {
+      "id": "pjm_2026_load_report_tables",
+      "path": "data/raw/pjm/2026-load-report-tables.xlsx",
+      "filename": "2026-load-report-tables.xlsx",
+      "source_url": "https://www.pjm.com/-/media/DotCom/planning/res-adeq/load-forecast/2026-load-report-tables.xlsx",
+      "source_request": null,
+      "publisher": "PJM Interconnection",
+      "retrieved_at": {
+        "value": "2026-11-20T22:08:53.714814Z",
+        "status": "recorded",
+        "evidence": "byte-identical copy retrieved from https://www.pjm.com/-/media/DotCom/planning/res-adeq/load-forecast/2026-load-report-tables.xlsx at 2026-11-20T22:08:53.714814Z; original download time (2026-10-14) not recorded; file-system time is evidence only"
+      },
+      "retrieval_receipt": {
+        "method": "HTTP GET with curl (-L --fail) into a temporary directory; SHA-256 compared with the stored file; the copy was deleted after hashing",
+        "started_at": "2026-11-20T22:08:52.833767Z",
+        "completed_at": "2026-11-20T22:08:53.714814Z",
+        "http_status": 200,
+        "http_date": "2026-11-20T22:08:53Z",
+        "http_last_modified": "2026-02-06T17:31:47Z",
+        "http_etag": "8d63e9de88bf4aebb4b71a290e4ec279",
+        "content_length": 371564,
+        "sha256_matches_stored_file": true,
+        "copy_retained": false
+      },
+      "observed_local_time": {
+        "value": "2026-10-14T18:25:52.781338Z",
+        "kind": "macOS st_birthtime of the stored copy",
+        "observed_on": "2026-11-20",
+        "note": "Evidence only. Not a recorded download time and not a PJM publication date."
+      },
+      "publication": {
+        "original_release_date": "2026-01-14",
+        "revision_date": "2026-02-06",
+        "status": "verified",
+        "evidence": [
+          "PJM Load Analysis Subcommittee lists the original 2026 release on 2026-01-14, and the load-forecast process page lists the 2026 bundle on 2026-02-06 (docs/pjm_ltlf_inventory.md, 2026 row).",
+          "Workbook docProps/core.xml modified 2026-02-06T13:00:41Z, so the stored bytes are the 2026-02-06 revision (author-set metadata; corroborating).",
+          "HTTP Last-Modified 2026-02-06T17:31:47Z on the 2026-11-20 retrieval (server metadata; corroborating).",
+          "Matches original_release_date, revision_date, and vintage_available_at in src/infralens/screening/pjm_sources.py."
+        ]
+      },
+      "sha256": "59a62facf819962e430101c96dd1335229d8173fb6886dd8045ced325443f607",
+      "size_bytes": 371564,
+      "licensing_note": "Not yet reviewed. The dataset classification and redistribution terms are decided under Phase 2 criterion 4.",
+      "git_status": "gitignored"
+    },
+    {
+      "id": "eia_retail_sales_sample_fixture",
+      "path": "tests/fixtures/eia_retail_sales_sample.json",
+      "filename": "eia_retail_sales_sample.json",
+      "source_url": null,
+      "source_request": null,
+      "publisher": "InfraLens repository (synthetic test fixture)",
+      "retrieved_at": {
+        "value": null,
+        "status": "not_applicable",
+        "evidence": "Hand-written in commit fbbdfd0e9f88f82120f1a0b4bb96abd8480b9200 in the shape of an EIA API v2 response. Not downloaded. Its values are synthetic (for example, VA 2001-01 price 6.50 here and 5.56 in the real EIA pull)."
+      },
+      "retrieval_receipt": null,
+      "observed_local_time": null,
+      "publication": {
+        "original_release_date": null,
+        "revision_date": null,
+        "status": "not_applicable",
+        "evidence": [
+          "Synthetic fixture; not a published dataset."
+        ]
+      },
+      "sha256": "b504784011e3ef22b6607cd41b7fc4cc4457a031f7a25b7a3c32f4b59f613fdc",
+      "size_bytes": 1546,
+      "licensing_note": "Synthetic data written for this repository. Not EIA data.",
+      "git_status": "tracked"
+    }
+  ],
+  "derived_artifacts": [
+    {
+      "id": "eia_retail_sales_monthly_com_20260911T190524Z_interim",
+      "path": "data/interim/eia_retail_sales_monthly_com_20260911T190524Z.parquet",
+      "filename": "eia_retail_sales_monthly_com_20260911T190524Z.parquet",
+      "producer": {
+        "script": "src/infralens/data/eia_ingest.py",
+        "function": "run_eia_retail_sales_ingest",
+        "git_commit": null,
+        "git_commit_status": "unrecorded",
+        "evidence": "No commit was recorded when the ingest ran (2026-09-11T19:05:24Z). The 17 stored columns equal an in-memory re-normalization of the raw file with current code, which adds only assumed_available_at (commit 4b92a5e2ab983891cebdf219b48930003fb4b50c, 2026-09-15), so the producing code predates that commit. The last commit before the run was 7d071464508b736f39651de75fd6117ad5f6cf15 (2026-09-10); uncommitted changes at run time cannot be ruled out."
+      },
+      "inputs": [
+        {
+          "id": "eia_retail_sales_monthly_com_20260911T190524Z_raw",
+          "sha256": "e4bf577ca2ef2b8227ba9c015ea6c366986060429d0bf8727b82c954783081d4",
+          "fingerprint_status": "computed_after_production",
+          "note": "Fingerprint computed on 2026-11-20. The ingest writes raw and interim files with the same timestamp stamp and refuses to overwrite either."
+        }
+      ],
+      "output": {
+        "sha256": "b0482530609f1093267b3a3bd35008b80c08e0394e0aa356f0bd27a3913ff5f1",
+        "size_bytes": 51067
+      },
+      "feeds": [
+        "EIA price history (src/infralens/demo/eia_views.py load_price_history; src/infralens/api/readers.py read_history)",
+        "Backtest, model selection, and final holdout input (src/infralens/evaluation/backtest.py load_price_panel)"
+      ],
+      "git_status": "gitignored"
+    },
+    {
+      "id": "final_holdout_cases",
+      "path": "data/processed/final_holdout/final_holdout_cases.parquet",
+      "filename": "final_holdout_cases.parquet",
+      "producer": {
+        "script": "src/infralens/evaluation/final_holdout.py",
+        "function": "write_holdout_result",
+        "git_commit": "ee5bcf6d541a1b15822f705e4099320f6f05dc32",
+        "git_commit_status": "recorded",
+        "evidence": "git_commit in final_holdout_summary.json, written by the same one-shot run on 2026-10-04 (America/New_York). Read-only fingerprint; the holdout is closed and was not rerun."
+      },
+      "inputs": [
+        {
+          "id": "eia_retail_sales_monthly_com_20260911T190524Z_interim",
+          "sha256": "b0482530609f1093267b3a3bd35008b80c08e0394e0aa356f0bd27a3913ff5f1",
+          "fingerprint_status": "computed_after_production",
+          "note": "The run recorded its input by name only (summary extract_id). Fingerprint computed on 2026-11-20; the file's modification time (2026-09-11) is earlier than the run."
+        }
+      ],
+      "output": {
+        "sha256": "fbbf607610e8a6151f2687d3d56511cb668dd1dd4002a2455925982943a7b732",
+        "size_bytes": 15335
+      },
+      "feeds": [
+        "Closed-holdout comparison chart (src/infralens/demo/eia_views.py load_holdout_comparison; src/infralens/api/readers.py read_holdout)",
+        "Model-derived Ridge price for finance scenarios (src/infralens/demo/foundation.py load_holdout_quotes; src/infralens/api/readers.py read_cases and price_scenarios)"
+      ],
+      "git_status": "gitignored"
+    },
+    {
+      "id": "final_holdout_summary_local",
+      "path": "data/processed/final_holdout/final_holdout_summary.json",
+      "filename": "final_holdout_summary.json",
+      "producer": {
+        "script": "src/infralens/evaluation/final_holdout.py",
+        "function": "write_holdout_result",
+        "git_commit": "ee5bcf6d541a1b15822f705e4099320f6f05dc32",
+        "git_commit_status": "recorded",
+        "evidence": "git_commit field in this file, written by the one-shot run on 2026-10-04 (America/New_York). Read-only fingerprint; the holdout is closed and was not rerun."
+      },
+      "inputs": [
+        {
+          "id": "eia_retail_sales_monthly_com_20260911T190524Z_interim",
+          "sha256": "b0482530609f1093267b3a3bd35008b80c08e0394e0aa356f0bd27a3913ff5f1",
+          "fingerprint_status": "computed_after_production",
+          "note": "The run recorded its input by name only (extract_id). Fingerprint computed on 2026-11-20."
+        }
+      ],
+      "output": {
+        "sha256": "8e839abb311d675ba2cdac39e78d534b8e045d7da9b667e2a85cf0521f9f177d",
+        "size_bytes": 2126
+      },
+      "feeds": [
+        "Source of the summary object in docs/final_eia_holdout_oneshot.json (no application code reads this file)"
+      ],
+      "git_status": "gitignored"
+    },
+    {
+      "id": "final_eia_holdout_oneshot_committed",
+      "path": "docs/final_eia_holdout_oneshot.json",
+      "filename": "final_eia_holdout_oneshot.json",
+      "producer": {
+        "script": "src/infralens/evaluation/final_holdout.py",
+        "function": "write_holdout_result",
+        "git_commit": "ee5bcf6d541a1b15822f705e4099320f6f05dc32",
+        "git_commit_status": "recorded",
+        "evidence": "runner_commit and summary.git_commit in this file. The summary object was copied from final_holdout_summary.json and the run metadata added by hand in commit 7c2385273175301314bccb18d248edb50591cc64 (2026-10-04); no script wrote this file."
+      },
+      "inputs": [
+        {
+          "id": "final_holdout_summary_local",
+          "sha256": "8e839abb311d675ba2cdac39e78d534b8e045d7da9b667e2a85cf0521f9f177d",
+          "fingerprint_status": "computed_after_production",
+          "note": "Fingerprint computed on 2026-11-20. The local summary equals this file's summary object."
+        }
+      ],
+      "output": {
+        "sha256": "5b116d9d0eaba5269f5afab71f60c826f4553174fb330e6e8fe80dfb6eba1393",
+        "size_bytes": 3365
+      },
+      "feeds": [
+        "Frozen FAIL banner and evaluation summary (src/infralens/demo/foundation.py load_holdout_banner; src/infralens/api/readers.py read_evaluation)",
+        "Portable image check (deploy/ci_portable_image.py PINNED_SUMMARY_SHA256)"
+      ],
+      "git_status": "tracked"
+    }
+  ]
+}

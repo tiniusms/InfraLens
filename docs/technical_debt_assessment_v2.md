@@ -36,13 +36,14 @@ Proposed phase is 1–5 from `docs/version_2_charter.md` section 8, or "accept".
 | TD-24 | `PROJECT_CONTEXT.md` sections 3, 7, 12 | The original capstone brief names a planned stack (XGBoost, SHAP, MLflow, Docker, calibrated quantile or conformal intervals) that differs from the running package. | `PROJECT_CONTEXT.md:4` labels sections 2–12 as the original capstone brief. `ARCHITECTURE.md:3` and `:163`, and `RISK_REGISTER.md:19` (R9), separate the planned stack from the installed one. | documentation drift | Can be read as an inventory of installed tools. | accept. It is labelled as historical, and the current stack is in `ARCHITECTURE.md` and `README.md` "Implemented stack". | S |
 | TD-25 | EIA extract `eia_retail_sales_monthly_com_20260911T190524Z.parquet`, `src/infralens/data/availability.py` | The EIA history is current-vintage with an assumed m+3 availability lag, not a revision-by-revision archive. | `RISK_REGISTER.md:14` (R4). `DECISIONS.md`, 2026-09-14. Charter Phase 2: "EIA vintage archival, provenance, availability timing". | data provenance | Backtests can use revised values that were not first-published values. | 2 | L |
 | TD-26 | `src/infralens/screening/pjm_sources.py`, `TASKS.md:87` | The 2024 PJM PDF tables are not parsed, so as-of dates before 2025-01-24 have no vintage in the screening layer. | `TASKS.md:87` ("Later PJM slice: 2024 PDF Table B1 and B-9"). `RISK_REGISTER.md:15` (R5). | data provenance | Screening history starts at the 2025 vintage. | 2 | M |
+| TD-27 | `data/raw/eia/` (three files), `data/processed/pjm/pjm_b1_summer_peak_2025_2026.parquet` | Added 2026-11-20 (Phase 2 criterion 1). Four local, gitignored data files are not used by the app or tests and are left out of `data/manifest.json`: three superseded EIA pulls (`retail_sales_monthly_com_20260910T035906Z.json`, `…20260910T180350Z.json`, `…20260911T000335Z.json`) and a PJM Table B1 Parquet that nothing reads and no script produces. | Each EIA pull is 700,120 bytes, and its payload equals the used `20260911T190524Z` pull except for `retrieved_at` (compared 2026-11-20). Searching code and tests for the `data/raw/eia` path finds only the writer, `src/infralens/data/eia_ingest.py:36`, and a `tmp_path` check in `tests/test_eia_ingest.py:43`. `git grep pjm_b1_summer_peak` finds nothing. The Parquet was written by an ad hoc call to `src/infralens/screening/pjm_b1.py:201` (`write_b1_parquet`) and carries a hand-entered `retrieved_at` of 2026-10-14 18:30:00, which is not a recorded download time. | data provenance | Unlisted files beside listed ones can be mistaken for sources, and the PJM Parquet carries an inferred retrieval time. | 2 (cleanup): archive or delete after the criterion 4 distribution policy, with owner approval. | S |
 
 ## Phase summary
 
 | Proposed phase | Items |
 | --- | --- |
 | 1 | TD-13 (resolved 2026-11-20; no Phase 1 item remains open) |
-| 2 | TD-01, TD-02, TD-03, TD-04, TD-25, TD-26 |
+| 2 | TD-01, TD-02, TD-03, TD-04, TD-25, TD-26, TD-27 (added 2026-11-20) |
 | 5 | TD-05, TD-06, TD-07, TD-08, TD-09, TD-11, TD-12, TD-14, TD-15, TD-16, TD-17, TD-21 |
 | accept | TD-10, TD-18, TD-19, TD-20, TD-22, TD-23, TD-24 |
 
