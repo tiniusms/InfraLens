@@ -268,7 +268,7 @@ def test_portable_image_workflow_is_local_and_read_only() -> None:
     workflow = (_ROOT / ".github" / "workflows" / "portable-image.yml").read_text(encoding="utf-8")
     script = (_ROOT / "deploy" / "ci_portable_image.py").read_text(encoding="utf-8")
     private_script = (_ROOT / "deploy" / "ci_private_image.py").read_text(encoding="utf-8")
-    assert "runs-on: ubuntu-latest" in workflow
+    assert "runs-on: ubuntu-26.04" in workflow
     assert "timeout-minutes: 20" in workflow
     assert "contents: read" in workflow
     assert "contents: write" not in workflow
