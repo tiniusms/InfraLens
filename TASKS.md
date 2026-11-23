@@ -16,7 +16,34 @@ Milestone acceptance criteria. Phase 2 is complete only when criteria 1–7 hold
 - [ ] TD-26: 2024 PJM PDF Table B1 and B-9. Promote only by owner decision, for example if Phase 3 shows that another screening year materially helps.
 
 ### Parallel task (does not gate Phase 2): React UX audit
-- [ ] Read-only audit. `docs/react_ux_audit_v2.md` lists issues grouped as credibility/trust, information hierarchy, usability, data explanation, responsive/layout, empty/error/loading states, and visual polish. Each issue is rated P0, P1, or P2, with route and screenshot evidence. Screenshots are attached to the pull request, not committed. No frontend code changes.
+- [x] Read-only audit. `docs/react_ux_audit_v2.md` lists issues grouped as credibility/trust, information hierarchy, usability, data explanation, responsive/layout, empty/error/loading states, and visual polish. Each issue is rated P0, P1, or P2, with route and screenshot evidence. Screenshots are attached to the pull request, not committed. No frontend code changes. Met 2026-11-20 (owner reviewed; merged in pull request #16 as `4508744`): no P0, 14 P1, and 26 P2 issues. On 2026-11-20 the owner re-rated CT-02 to P2 (13 P1, 27 P2); see "Frontend P1 fixes" below.
+
+## Frontend P1 fixes (parallel to Phase 2; does not gate it)
+Governance: `DECISIONS.md`, 2026-11-20, "Frontend P1 fixes authorized alongside Phase 2". Source: the P1 issues in `docs/react_ux_audit_v2.md` (pull request #16). Status: authorized, not started. These are correctness and bug fixes only: no redesign, new views, new features, or visual restyling. Phase 5 keeps the redesign. Each group, or a smaller fix, needs its own branch, validation evidence, and owner review before merging. Group C starts only after Phase 2 criterion 2 is merged, because both change the PJM screen files. The owner decided the flagged items on 2026-11-20 (see the notes below and the `DECISIONS.md` entry). Deferred parts are not implemented here, and each needs its own dated decision before it is. CT-02 was re-rated to P2 on 2026-11-20 (the published Table B1 decimal was misread as derived; see the dated note in the audit) and is not part of this task, nor are the other 26 P2 issues.
+
+| ID | View | Issue | Group | Note |
+| --- | --- | --- | --- | --- |
+| US-01 | All routes (app shell) | Crossing the 1024 px breakpoint remounts the page and discards state, form inputs, and results. | A | |
+| ST-01 | Unknown route | Renders a blank page with no shell, navigation, or not-found message. | A | |
+| US-02 | Finance | Operating hours above the 8,784 hours of a leap year are accepted and produce a charge. | A | Owner decision: a non-blocking warning above 8,784 hours. The value is still accepted and sent. No change to the 2026-10-14 rule, the Python service, or the API. |
+| US-03 | Finance | Validation errors look like hint text, with no error summary and no focus on the first error. | A | |
+| CT-04 | Finance, API down | "Typed prices can still be calculated" contradicts the failed calculation that follows. | A | |
+| RL-01 | Overview, mobile | The Evidence table clips the "What this status allows" column. | A | |
+| CT-01 | Overview, Electricity, Finance, PJM | Values are shown at full float precision, including float artifacts. | B | Owner decision: cents/kWh 2 decimals, MAE 3 decimals, percent 2 decimals, USD whole dollars with thousands separators, MW whole numbers. Display only. |
+| VP-01 | Finance, PJM | Large numbers have no thousands separators. | B | Same precision rule as CT-01. |
+| IH-01 | Overview | The 0% interval coverage (nominal 80%) is a plain table row, not part of the headline finding. | C | Owner decision: put the 0% coverage (nominal 80%) in the headline finding, frontend only. Deferred: the "systematically underpredicted" sentence. It is not hard-coded, and an API field for it needs its own decision. |
+| DE-01 | Overview, Electricity | The 12-month horizon and the evaluation window are not stated, and portable mode shows no window. | C | Deferred (owner, 2026-11-20). The evaluation-summary API returns no horizon or window, the window comes only from `/api/v1/eia/holdout` in full-data mode, and a hard-coded value would be a content rule. Waits for an approved API field. |
+| DE-02 | Finance, Ridge-quote result | The result omits the case (state, target month, forecast origin), model version, and data date, and drops the stored interval. | C | Owner decision: show the case identity now (state, target month, forecast origin, model version, data date). The model version and data date come from the existing evaluation-summary fields, with no API change. Deferred: the stored interval, to a separate financial-methodology decision. |
+| DE-03 | PJM | The growth-rate row does not say it is PJM's vintage-level 10-year rate, repeated for every forecast year. | C | Owner decision: a clearer, copy-only label now. Deferred: the 10-year window years, which need an API change. |
+| CT-03 | PJM, Source evidence | `retrieved_at` is a local file-creation time. | Phase 2 criterion 2 | Not fixed here. |
+
+Acceptance criteria. The task is complete only when all six hold:
+- [ ] 1. Each fixed P1 has a frontend regression test (vitest) where it is testable, or a documented manual check with before and after screenshots attached to its pull request.
+- [ ] 2. `npm test` passes with at least 41 tests plus the new ones, and lint and build are green. Python CI is unchanged by these fixes (194 passed, 14 skipped, 0 failed on `main` at `3867791`). Expected display text may change only where the formatting changes. Each change is listed in the pull request and no assertion is removed.
+- [ ] 3. No change to Python code, API contracts, calculations, data, or the frozen holdout, unless a separate approved decision says otherwise.
+- [ ] 4. Content rules hold: the Version 1 FAIL stays visible, scope stays VA, PA, OH, MD, and NJ, there are no scores, and evidence, predictions, assumptions, and uncertainty stay distinct, with units, source, and date.
+- [ ] 5. No new npm dependency without owner approval.
+- [ ] 6. Done when every P1 except CT-03 is fixed, or explicitly deferred with a reason recorded in a status column of `docs/react_ux_audit_v2.md`.
 
 ## Version 2 Phase 1 — Engineering foundation (authorized 2026-11-05; complete 2026-11-20)
 Governance: `docs/version_2_charter.md` and `DECISIONS.md`, 2026-11-05, merged into `main` as `77575d5` (pull request #9). Status: complete as of 2026-11-20 (`DECISIONS.md`, 2026-11-20). All eight criteria below hold, and `docs/technical_debt_assessment_v2.md` has no open Phase 1 item. Phase 2 was authorized on 2026-11-20 and Phases 3–5 need owner approval (see "Version 2 phase roadmap"). Each implementation task below still needs its own scoped branch, validation evidence, and owner review before merging. Phase 1 authorization does not approve every proposed engineering change.
