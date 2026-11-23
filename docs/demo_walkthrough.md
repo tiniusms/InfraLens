@@ -66,7 +66,7 @@ Zone AEP, forecast year 2026. Pick the as-of date in the date control and leave 
 
 B-9 and B-9b stay separate. Neither is isolated data-center MW. Zones are not US states: the tab does not join a zone to an EIA state, allocate MW, or rank locations.
 
-Source lines link to the official PJM Tables workbook for the selected vintage. `retrieved_at` is the later local file-creation time of the cached workbooks. It is not a PJM publication date and not a download receipt.
+Source lines link to the official PJM Tables workbook for the selected vintage. `retrieved_at` is each workbook's recorded retrieval time from `data/manifest.json`: a 2026-11-20 re-download of a byte-identical file. The original download time was not recorded. It is not a PJM publication date.
 
 ## Five-minute defense sequence
 
@@ -74,4 +74,4 @@ Source lines link to the official PJM Tables workbook for the selected vintage. 
 2. On the EIA tab, select PA. Show the observed price line from 2001-01 through 2026-06, then the closed holdout from 2025-07 through 2026-06 with the nominal-80% interval labeled at 0% empirical coverage.
 3. On Financial scenarios, calculate the 50 MW typed example and read 455,520,000 kWh, $54,662,400, and the −$9,110,400 comparison.
 4. Switch the baseline to one frozen holdout Ridge case and read the model-derived warning.
-5. On PJM infrastructure screening, keep AEP and forecast year 2026. Show 2026-02-06 (vintage 2026: 24,635 / 1,913 / 2,699 MW), then 2025-06-30 (vintage 2025: 25,788 / 3,621 / 3,936 MW). Point to the zone warning, the large-load warning, the source URL, and the file-creation `retrieved_at` caveat.
+5. On PJM infrastructure screening, keep AEP and forecast year 2026. Show 2026-02-06 (vintage 2026: 24,635 / 1,913 / 2,699 MW), then 2025-06-30 (vintage 2025: 25,788 / 3,621 / 3,936 MW). Point to the zone warning, the large-load warning, the source URL, and the `retrieved_at` caveat (a recorded re-download of a byte-identical file, not the original download time and not a PJM publication date).

@@ -18,6 +18,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+from infralens.data.manifest import default_manifest_path
 from infralens.demo.eia_views import (
     ACTUAL_SERIES_LABEL,
     HOLDOUT_SECTION_LABEL,
@@ -62,6 +63,7 @@ from infralens.demo.pjm_screen import (
     MISSING_WORKBOOKS,
     UNPUBLISHED_NOTE,
     load_screening_tables,
+    manifest_identity,
     present_screening,
     screen_cached_zone,
     workbook_identity,
@@ -381,7 +383,7 @@ def _render_pjm(raw_dir: Path) -> None:
         st.warning(MISSING_WORKBOOKS)
         return
     try:
-        identity = tuple(workbook_identity(path) for path in paths)
+        identity = _pjm_cache_identity(raw_dir)
         b1_rows, adjustment_rows, retrieval = _cached_pjm_tables(str(raw_dir), identity)
     except (DemoDataError, PjmB1Error, PjmAdjustmentError) as exc:
         st.error(str(exc))
@@ -451,15 +453,21 @@ def _visible_paths(paths: LocalArtifactPaths) -> LocalArtifactPaths:
     )
 
 
+def _pjm_cache_identity(raw_dir: Path) -> tuple[object, ...]:
+    """Workbook and manifest identities. Not provenance; only detects a change."""
+
+    workbooks = tuple(workbook_identity(path) for path in workbook_paths(raw_dir))
+    return (*workbooks, manifest_identity(default_manifest_path()))
+
+
 @st.cache_data(show_spinner=False)
-def _cached_pjm_tables(raw_dir_text: str, identity: tuple[tuple[str, int, int, int | None], ...]):
-    """Cache parsed workbooks. The identity tuple drops the cache when a file changes."""
+def _cached_pjm_tables(raw_dir_text: str, identity: tuple[object, ...]):
+    """Cache parsed workbooks. The identity tuple drops the cache when a file or the manifest changes."""
 
     raw_dir = Path(raw_dir_text)
-    current = tuple(workbook_identity(path) for path in workbook_paths(raw_dir))
-    if current != identity:
+    if _pjm_cache_identity(raw_dir) != identity:
         raise DemoDataError("Cached PJM workbooks no longer match the files on disk.")
-    return load_screening_tables(raw_dir)
+    return load_screening_tables(raw_dir, manifest_path=default_manifest_path())
 
 
 if __name__ == "__main__":
