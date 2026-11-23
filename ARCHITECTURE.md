@@ -71,7 +71,7 @@ The frozen evaluation extract is `eia_retail_sales_monthly_com_20260911T190524Z.
 
 PJM file-level dates live in `src/infralens/screening/pjm_sources.py`. The 2025 workbook is available 2025-01-24, with no revision date. The 2026 workbook was first listed 2026-01-14 and is available to InfraLens on 2026-02-06, the file-level revision used for the stored Tables workbook. `src/infralens/screening/pjm_b1.py` opens each `.xlsx` as a ZIP and reads sheet XML with `xml.etree`. `src/infralens/screening/pjm_adjustments.py` uses that same sheet reader for B-9 and B-9b. The 2024 revised PDF is not parsed. `docs/pjm_ltlf_inventory.md` keeps the inventory of vintages that are outside this code.
 
-On the demo, `retrieved_at` for those workbooks is the later local file-creation time of the two cached files (`src/infralens/demo/pjm_screen.py`). That timestamp is not a PJM publication date. If the creation time cannot be read, the page does not invent one.
+On the demo, `retrieved_at` for each workbook comes from `data/manifest.json` (`src/infralens/demo/pjm_screen.py`), and only when the entry's status is `recorded` and the local file's SHA-256 and size match it. For both current workbooks it is a recorded 2026-11-20 re-download of byte-identical files. The original 2026-10-14 download time was not recorded. That timestamp is not a PJM publication date. If no recorded time is available or the file does not match, the page refuses and does not invent one.
 
 The committed holdout summary is `docs/final_eia_holdout_oneshot.json`. These four caches are gitignored. Full charts and PJM screening need all four:
 

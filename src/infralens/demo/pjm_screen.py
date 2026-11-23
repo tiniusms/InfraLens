@@ -1,17 +1,25 @@
 """PJM zone-year screening for the demo page.
 
 Parsing and vintage selection stay in ``infralens.screening``. This module
-only locates the cached workbooks, records their local file-creation times,
-and presents one ``screen_zone_year`` result. It does not download files,
-add B-9 to B-9b, or score investment risk.
+only locates the cached workbooks, takes their recorded retrieval times from
+``data/manifest.json`` after a SHA-256 check, and presents one
+``screen_zone_year`` result. It does not read file-system times as
+provenance, download files, add B-9 to B-9b, or score investment risk.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from dataclasses import dataclass, replace
+from datetime import date, datetime
 from pathlib import Path
 
+from infralens.data.manifest import (
+    ManifestError,
+    ManifestFileMismatch,
+    RecordedRetrieval,
+    default_manifest_path,
+    recorded_retrieval,
+)
 from infralens.demo.foundation import DemoDataError
 from infralens.screening.pjm_adjustments import AdjustmentRow, load_slice2_adjustments
 from infralens.screening.pjm_b1 import B1Row, load_slice1_tables
@@ -38,9 +46,12 @@ MISSING_WORKBOOKS = (
     "The EIA charts and the cost calculator still run."
 )
 RETRIEVAL_UNAVAILABLE = (
-    "A retrieval timestamp for the local PJM workbooks cannot be established "
-    "from file-creation metadata. Screening numbers are not shown, because a "
-    "retrieval time will not be invented."
+    "A recorded retrieval time for the local PJM workbooks is not in the data manifest. "
+    "Screening numbers are not shown, because a retrieval time will not be invented."
+)
+FILE_MISMATCH = (
+    "A local PJM workbook does not match the SHA-256 recorded in the data manifest. "
+    "Screening numbers and the recorded retrieval time are not shown."
 )
 UNPUBLISHED_NOTE = "Unpublished on this as-of date. Measures are not shown as zero."
 CAGR_PERCENT_LABEL = (
@@ -53,14 +64,15 @@ MALFORMED_VINTAGE_NOTE = (
 
 @dataclass(frozen=True)
 class WorkbookRetrieval:
-    """One loader timestamp taken from local file-creation times.
+    """Recorded retrieval times from the data manifest, one per workbook.
 
-    ``loader_retrieved_at`` is the later creation time because the workbook
-    parsers accept a single timestamp. Both creation times stay in the note.
+    ``loader_retrieved_at`` is the later recorded time, passed to the parsers,
+    which accept a single timestamp. Parsed rows are then re-stamped with
+    their own workbook's recorded time.
     """
 
     loader_retrieved_at: datetime
-    file_creation_times_utc: tuple[tuple[str, str], ...]
+    recorded_times_utc: tuple[tuple[str, str], ...]
     note: str
 
 
@@ -97,55 +109,94 @@ def workbook_paths(raw_dir: Path) -> tuple[Path, Path]:
     return tuple(raw_dir / source.source_file for source in TABLE_B1_SOURCES)  # type: ignore[return-value]
 
 
-def workbook_identity(path: Path) -> tuple[str, int, int, int | None]:
-    """Name, size, mtime, and birth time. A replaced file changes this key."""
+def workbook_identity(path: Path) -> tuple[str, int, int, int]:
+    """Name, size, mtime, and inode-change time. Only detects a changed file.
+
+    This key is for caching. It is not provenance: the retrieval time comes
+    from the data manifest after a SHA-256 check.
+    """
 
     stat = path.stat()
-    birth = getattr(stat, "st_birthtime_ns", None)
-    birth_ns = None if birth is None else int(birth)
-    return (path.name, stat.st_size, stat.st_mtime_ns, birth_ns)
+    return (path.name, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
 
 
-def local_workbook_retrieved_at(paths: tuple[Path, ...]) -> WorkbookRetrieval:
-    """Read file-creation times. A missing birth time is reported, not filled in."""
+def manifest_identity(manifest_path: Path) -> tuple[str, int, int, int] | None:
+    """Cache key for the manifest itself, so editing it drops parsed tables."""
 
-    created: list[tuple[str, datetime]] = []
+    if not manifest_path.is_file():
+        return None
+    return workbook_identity(manifest_path)
+
+
+def manifest_workbook_retrieval(
+    paths: tuple[Path, ...],
+    manifest_path: Path | None = None,
+) -> WorkbookRetrieval:
+    """Recorded retrieval times from the data manifest. Nothing is filled in.
+
+    A file that differs from its manifest fingerprint raises ``FILE_MISMATCH``.
+    A missing manifest, a missing entry, or an entry without a recorded
+    retrieval time raises ``RETRIEVAL_UNAVAILABLE``.
+    """
+
+    manifest = manifest_path or default_manifest_path()
+    recorded: list[RecordedRetrieval] = []
     for path in paths:
-        stat = path.stat()
-        birth = getattr(stat, "st_birthtime", None)
-        if birth is None:
-            raise DemoDataError(RETRIEVAL_UNAVAILABLE)
-        created.append((path.name, datetime.fromtimestamp(birth, tz=timezone.utc)))
-    later = max(stamp for _, stamp in created)
-    listed = ", ".join(f"{name} {stamp.isoformat()}" for name, stamp in created)
-    note = (
-        "retrieved_at is the later local file-creation time of the cached workbooks, "
-        f"{later.isoformat()}. File creation times: {listed}. "
-        "The parsers record that one timestamp on every row. "
-        "This is not a PJM publication date and not a download receipt."
-    )
+        try:
+            recorded.append(recorded_retrieval(manifest, path))
+        except ManifestFileMismatch as exc:
+            raise DemoDataError(FILE_MISMATCH) from exc
+        except ManifestError as exc:
+            raise DemoDataError(RETRIEVAL_UNAVAILABLE) from exc
     return WorkbookRetrieval(
-        loader_retrieved_at=later,
-        file_creation_times_utc=tuple((name, stamp.isoformat()) for name, stamp in created),
-        note=note,
+        loader_retrieved_at=max(item.retrieved_at for item in recorded),
+        recorded_times_utc=tuple((item.filename, _utc_text(item.retrieved_at)) for item in recorded),
+        note=_retrieval_note(recorded),
     )
 
 
 def load_screening_tables(
     raw_dir: Path,
+    manifest_path: Path | None = None,
 ) -> tuple[list[B1Row], list[AdjustmentRow], WorkbookRetrieval]:
     """Parse both workbooks with the existing loaders. A missing file stays missing."""
 
     paths = workbook_paths(raw_dir)
     if any(not path.is_file() for path in paths):
         raise DemoDataError(MISSING_WORKBOOKS)
-    retrieval = local_workbook_retrieved_at(paths)
+    retrieval = manifest_workbook_retrieval(paths, manifest_path)
+    by_file = {name: datetime.fromisoformat(text.removesuffix("Z") + "+00:00") for name, text in retrieval.recorded_times_utc}
     b1_rows = load_slice1_tables(raw_dir, retrieved_at=retrieval.loader_retrieved_at)
     adjustment_rows = load_slice2_adjustments(
         raw_dir,
         retrieved_at=retrieval.loader_retrieved_at,
     )
+    b1_rows = [replace(row, retrieved_at=by_file[row.source_file]) for row in b1_rows]
+    adjustment_rows = [replace(row, retrieved_at=by_file[row.source_file]) for row in adjustment_rows]
     return b1_rows, adjustment_rows, retrieval
+
+
+def _utc_text(stamp: datetime) -> str:
+    return stamp.isoformat().replace("+00:00", "Z")
+
+
+def _retrieval_note(recorded: list[RecordedRetrieval]) -> str:
+    days = sorted({item.retrieved_at.date().isoformat() for item in recorded})
+    rechecked = [item.byte_identical_recheck for item in recorded]
+    if all(rechecked):
+        kind = "byte-identical copy; original download time not recorded"
+    elif not any(rechecked):
+        kind = "recorded at download"
+    else:
+        kind = "recorded per workbook; see the manifest evidence"
+    times = "; ".join(f"{item.filename} {_utc_text(item.retrieved_at)}" for item in recorded)
+    evidence = " ".join(f'{item.filename}: "{item.evidence}".' for item in recorded)
+    return (
+        f"Retrieved {' and '.join(days)} ({kind}). "
+        f"retrieved_at comes from the data manifest: {times}. "
+        f"Manifest evidence: {evidence} "
+        "This is not a PJM publication date; vintage availability uses the PJM release dates."
+    )
 
 
 def screen_cached_zone(
@@ -189,9 +240,7 @@ def present_screening(result: ZoneYearScreening, retrieval_note: str) -> Screeni
         source_tables=tuple(source.source_table for source in result.sources),
         source_files=tuple(source.source_file for source in result.sources),
         source_urls=result.source_urls,
-        retrieved_at=tuple(
-            "" if stamp is None else stamp.isoformat() for stamp in result.retrieved_at
-        ),
+        retrieved_at=tuple("" if stamp is None else _utc_text(stamp) for stamp in result.retrieved_at),
         unavailable_reason=result.unavailable_reason,
         geographic_warning=GEOGRAPHIC_WARNING,
         large_load_warning=LARGE_LOAD_WARNING,

@@ -37,6 +37,7 @@ from infralens.api.schemas import (
     StatusResponse,
     StoredSummary,
 )
+from infralens.data.manifest import default_manifest_path
 from infralens.demo.eia_views import (
     DEMO_STATES,
     HISTORY_LIMITATIONS,
@@ -70,6 +71,7 @@ from infralens.demo.pjm_screen import (
     LARGE_LOAD_WARNING,
     MISSING_WORKBOOKS,
     load_screening_tables,
+    manifest_identity,
     present_screening,
     screen_cached_zone,
     workbook_identity,
@@ -702,16 +704,18 @@ def _load_pjm(runtime: Runtime, paths):
             MISSING_WORKBOOKS,
             artifact_id=missing,
         )
+    manifest_path = default_manifest_path(runtime.root)
     identity = (
         _file_key("pjm_2025_tables", paths.pjm_2025_tables),
         _file_key("pjm_2026_tables", paths.pjm_2026_tables),
+        ("manifest", manifest_identity(manifest_path)),
     )
     with runtime.lock:
         cached = runtime.pjm_tables.get(identity)
     if cached is not None:
         return cached
     try:
-        loaded = load_screening_tables(paths.pjm_2025_tables.parent)
+        loaded = load_screening_tables(paths.pjm_2025_tables.parent, manifest_path=manifest_path)
     except DemoDataError as exc:
         _remember_pjm_failure(runtime, paths)
         if "not on this machine" in str(exc):

@@ -545,8 +545,19 @@ def test_present_but_unreadable_caches_stay_distinct_from_missing(tmp_path: Path
     extract.write_text("not parquet", encoding="utf-8")
     raw = tmp_path / "data" / "raw" / "pjm"
     raw.mkdir(parents=True)
+    entries = []
     for name in ("2025-load-report-tables.xlsx", "2026-load-report-tables.xlsx"):
         (raw / name).write_bytes(b"")
+        # A recorded manifest entry, so the failure is the unreadable workbook itself.
+        entries.append(
+            {
+                "path": f"data/raw/pjm/{name}",
+                "sha256": hashlib.sha256(b"").hexdigest(),
+                "size_bytes": 0,
+                "retrieved_at": {"value": "2026-11-20T00:00:00Z", "status": "recorded", "evidence": "test"},
+            }
+        )
+    (tmp_path / "data" / "manifest.json").write_text(json.dumps({"raw_sources": entries}), encoding="utf-8")
     with _client(tmp_path) as client:
         before = _json(client.get("/api/v1/status"))
         history = client.get("/api/v1/eia/history", params={"state_id": "PA"})
@@ -599,7 +610,7 @@ def test_malformed_vintage_is_conflict_and_does_not_substitute(
     for name in ("2025-load-report-tables.xlsx", "2026-load-report-tables.xlsx"):
         (raw / name).write_bytes(b"placeholder")
 
-    def _loaded(_raw_dir: Path):
+    def _loaded(_raw_dir: Path, **_kwargs: object):
         return ([], [], SimpleNamespace(note="patched"))
 
     def _boom(*_args, **_kwargs):
