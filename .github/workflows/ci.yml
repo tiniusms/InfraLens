@@ -57,7 +57,12 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          python -m pytest tests --ignore=tests/test_final_holdout.py -rs 2>&1 | tee pytest-output.txt
+          python -m pytest tests --ignore=tests/test_final_holdout.py -rs --junitxml=pytest-results.xml 2>&1 | tee pytest-output.txt
+
+      # Data policy (DECISIONS.md, 2026-11-23): at most 14 skips, each a named
+      # missing-cache reason from data/distribution_policy.json.
+      - name: Enforce the missing-cache skip policy
+        run: python scripts/data_policy.py check-skips pytest-results.xml
 
       - name: Record test counts and skip reasons
         if: always()

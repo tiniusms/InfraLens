@@ -1,0 +1,42 @@
+{
+  "policy_version": 1,
+  "decision": "DECISIONS.md, 2026-11-23, Phase 2 criterion 4",
+  "description": "Distribution class for every data/manifest.json entry, and the only allowed missing-cache test skips. local_only files are not distributed in git. See data/README.md.",
+  "classes": {
+    "eia_retail_sales_monthly_com_20260911T190524Z_raw": "local_only",
+    "pjm_2025_load_report_tables": "local_only",
+    "pjm_2026_load_report_tables": "local_only",
+    "eia_retail_sales_sample_fixture": "committed",
+    "eia_retail_sales_monthly_com_20260911T190524Z_interim": "local_only",
+    "final_holdout_cases": "local_only",
+    "final_holdout_summary_local": "local_only",
+    "final_eia_holdout_oneshot_committed": "committed"
+  },
+  "cache_paths": [
+    "data/interim/eia_retail_sales_monthly_com_20260911T190524Z.parquet",
+    "data/processed/final_holdout/final_holdout_cases.parquet",
+    "data/raw/pjm/2025-load-report-tables.xlsx",
+    "data/raw/pjm/2026-load-report-tables.xlsx"
+  ],
+  "skip_reasons": {
+    "eia_history": "Missing cache (eia_history): frozen EIA price history is not on this machine.",
+    "holdout_cases": "Missing cache (holdout_cases): frozen holdout cases are not on this machine.",
+    "pjm_workbooks": "Missing cache (pjm_workbooks): official PJM Tables workbooks are not in data/raw/pjm."
+  },
+  "allowed_skips": {
+    "tests/test_api_contract.py::test_observed_history_uses_the_loader_roles": "eia_history",
+    "tests/test_demo_eia_views.py::test_local_price_history_matches_the_frozen_extract": "eia_history",
+    "tests/test_api_contract.py::test_holdout_series_keeps_origins_in_provenance": "holdout_cases",
+    "tests/test_api_contract.py::test_holdout_ridge_price_comes_from_the_case_file": "holdout_cases",
+    "tests/test_demo_eia_views.py::test_local_holdout_file_matches_the_closed_window": "holdout_cases",
+    "tests/test_api_contract.py::test_pjm_published_and_unpublished_boundaries_match_the_workbooks": "pjm_workbooks",
+    "tests/test_demo_pjm_screen.py::test_aep_cutoffs_match_the_cached_workbooks": "pjm_workbooks",
+    "tests/test_demo_pjm_screen.py::test_date_before_the_2025_release_is_unpublished": "pjm_workbooks",
+    "tests/test_pjm_adjustments.py::test_official_adjustment_workbooks": "pjm_workbooks",
+    "tests/test_pjm_adjustments.py::test_official_b9_workbook_rejects_corrupt_cells": "pjm_workbooks",
+    "tests/test_pjm_screening.py::test_official_workbooks_match_published_b1_cells": "pjm_workbooks",
+    "tests/test_pjm_screening.py::test_official_ingest_rejects_corrupt_workbooks": "pjm_workbooks",
+    "tests/test_pjm_screening.py::test_official_rows_reject_duplicate_keys_and_invented_dates": "pjm_workbooks",
+    "tests/test_pjm_view.py::test_official_aep_2026_view_matches_workbook_columns": "pjm_workbooks"
+  }
+}

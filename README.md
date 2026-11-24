@@ -223,6 +223,8 @@ Local full-data mode, with charts and PJM screening, needs all four files:
 
 Leave a missing file unavailable. Do not download a substitute and do not regenerate the final holdout. To preview portable mode while those files remain on disk, start with `INFRALENS_PORTABLE_PREVIEW=1`. That switch only hides the cache paths for the process.
 
+**Data-distribution policy.** The caches stay out of git, and CI enforces this through `data/distribution_policy.json`. EIA data is public domain with attribution ([EIA Copyrights and Reuse](https://www.eia.gov/about/copyrights_reuse.php) and [API Terms of Service](https://www.eia.gov/opendata/terms-of-service.php), retrieved 2026-11-23). The PJM workbooks stay local because PJM's published terms give no clear redistribution right ([PJM Legal](https://www.pjm.com/m/About-PJM/Legal) and the [load forecast page](https://www.pjm.com/planning/resource-adequacy-planning/load-forecast-dev-process), retrieved 2026-11-23). CI allows at most 14 skips, each with a named missing-cache reason: EIA history 2, holdout cases 3, and PJM workbooks 9. Those tests do not validate the real cached data in CI. Details are in `data/README.md`.
+
 ## EIA ingestion and development
 
 A new EIA extract is separate from the demo. Copy `.env.example` to `.env` and set `EIA_API_KEY` (register at https://www.eia.gov/opendata/register.php). Then run `python -m infralens.data.eia_ingest`. Only that ingestion path reads `EIA_API_KEY`.

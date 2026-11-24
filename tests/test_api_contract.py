@@ -14,6 +14,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 
+from data_cache_skips import skip_missing_cache
 from infralens.api.app import create_app
 from infralens.api.schemas import FINANCE_MAX_BODY_BYTES
 from infralens.data import repository_root
@@ -634,7 +635,7 @@ def test_malformed_vintage_is_conflict_and_does_not_substitute(
 def test_observed_history_uses_the_loader_roles() -> None:
     path = default_artifact_paths().price_history
     if not path.is_file():
-        pytest.skip("Frozen EIA price history is not on this machine.")
+        skip_missing_cache("eia_history")
     with _client(repository_root()) as client:
         response = client.get("/api/v1/eia/history", params={"state_id": "PA"})
     assert response.status_code == 200
@@ -654,7 +655,7 @@ def test_observed_history_uses_the_loader_roles() -> None:
 def test_holdout_series_keeps_origins_in_provenance() -> None:
     path = default_artifact_paths().holdout_cases
     if not path.is_file():
-        pytest.skip("Frozen holdout cases are not on this machine.")
+        skip_missing_cache("holdout_cases")
     with _client(repository_root()) as client:
         response = client.get("/api/v1/eia/holdout", params={"state_id": "VA"})
         cases = client.get("/api/v1/eia/holdout/cases")
@@ -681,7 +682,7 @@ def test_holdout_series_keeps_origins_in_provenance() -> None:
 def test_holdout_ridge_price_comes_from_the_case_file() -> None:
     path = default_artifact_paths().holdout_cases
     if not path.is_file():
-        pytest.skip("Frozen holdout cases are not on this machine.")
+        skip_missing_cache("holdout_cases")
     with _client(repository_root()) as client:
         cases = _json(client.get("/api/v1/eia/holdout/cases"))
         quote = cases["cases"][0]
@@ -749,7 +750,7 @@ def test_holdout_ridge_price_comes_from_the_case_file() -> None:
 def test_pjm_published_and_unpublished_boundaries_match_the_workbooks() -> None:
     raw_dir = default_artifact_paths().pjm_2025_tables.parent
     if not all(path.is_file() for path in workbook_paths(raw_dir)):
-        pytest.skip("Official PJM Tables workbooks are not in data/raw/pjm.")
+        skip_missing_cache("pjm_workbooks")
     with _client(repository_root()) as client:
         before = _json(client.get("/api/v1/status"))
         early = client.get(
