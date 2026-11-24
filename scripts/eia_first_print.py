@@ -37,10 +37,12 @@ from infralens.data.epm_first_print import (
     LAST_TIMING_REFERENCE_MONTH,
     STATE_NAMES,
     add_months,
+    final_data_years,
     first_print_issue_months,
     issue_archive_stem,
     parse_issue,
     price_table_metadata,
+    read_price_table,
     reference_month_for_issue,
     timing_issue_months,
     timing_row,
@@ -64,6 +66,7 @@ YEAR_AGO_COLUMNS = [
     "year_ago_issue",
     "year_ago_cell",
     "difference_cents_per_kwh",
+    "year_ago_class",
 ]
 FROZEN_EXTRACT = "data/interim/eia_retail_sales_monthly_com_20260911T190524Z.parquet"
 USER_AGENT = "research-data-client/1.0"
@@ -396,22 +399,176 @@ def year_ago_versus_current(frame: pd.DataFrame, current: pd.DataFrame) -> dict[
     }
 
 
-def write_year_ago_differences(path: Path, mismatches: list[dict[str, Any]]) -> None:
-    """Commit every difference without committing a price level."""
+def annual_final_releases(root: Path, sources: dict[str, Any]) -> dict[int, dict[str, str]]:
+    """The first in-window issue whose Table 5.6.A notes label each data year final."""
 
-    rows = sorted(mismatches, key=lambda item: (item["year_ago_month"], item["state"]))
+    releases: dict[int, dict[str, str]] = {}
+    for item in sources["issues"]:
+        if item["reference_month"] > LAST_REFERENCE_MONTH:
+            continue
+        _, table, _ = read_price_table(root / item["local_path"])
+        for year, cell in final_data_years(table, item["issue_month"]).items():
+            releases.setdefault(
+                year,
+                {
+                    "issue_month": item["issue_month"],
+                    "note_cell": cell,
+                    "table_name": item["price_table"]["name"],
+                    "server_date_proxy": item["server_last_modified_utc"][:10],
+                    "table_built_date_proxy": item["price_table"]["internal_modified_utc"][:10],
+                },
+            )
+    return releases
+
+
+def classify_year_ago(
+    frame: pd.DataFrame, current: pd.DataFrame, releases: dict[int, dict[str, str]]
+) -> pd.DataFrame:
+    """Classify each comparison. Class (c) needs the data year's final-labelled issue.
+
+    ``d_has_revised_preliminary_step`` is a sensitivity only: an issue labelling the
+    prior year final lies after the first print and no later than the year-ago issue.
+    """
+
+    first = frame[["state", "reference_month", "price_cents_per_kwh", "issue_month", "cell"]].rename(
+        columns={
+            "reference_month": "year_ago_month",
+            "price_cents_per_kwh": "first_print",
+            "issue_month": "first_print_issue",
+            "cell": "first_print_cell",
+        }
+    )
+    pairs = frame[["state", "year_ago_month", "issue_month", "year_ago_cell", "year_ago_price_cents_per_kwh"]].merge(
+        first, on=["state", "year_ago_month"], how="inner"
+    )
+    pairs = pairs.rename(columns={"issue_month": "year_ago_issue", "year_ago_price_cents_per_kwh": "year_ago"})
+    pairs = pairs.merge(
+        current.rename(columns={"reference_month": "year_ago_month"}),
+        on=["state", "year_ago_month"],
+        how="left",
+        validate="one_to_one",
+    )
+    if pairs[["first_print", "year_ago", "current_price"]].isna().any().any():
+        raise FetchError("A year-ago comparison is missing a value.")
+    classes, sensitivity = [], []
+    for row in pairs.itertuples(index=False):
+        year = int(row.year_ago_month[:4])
+        final = releases.get(year)
+        prior = releases.get(year - 1)
+        if round(row.year_ago, 2) == round(row.first_print, 2):
+            label = "a"
+        elif round(row.year_ago, 2) == round(row.current_price, 2):
+            label = "b"
+        elif final is not None and row.year_ago_issue >= final["issue_month"]:
+            label = "c"
+        else:
+            label = "d"
+        classes.append(label)
+        sensitivity.append(
+            label == "d"
+            and prior is not None
+            and row.first_print_issue < prior["issue_month"] <= row.year_ago_issue
+        )
+    pairs["year_ago_class"] = classes
+    pairs["d_has_revised_preliminary_step"] = sensitivity
+    pairs["difference"] = (pairs["year_ago"] - pairs["first_print"]).round(2)
+    return pairs.sort_values(["year_ago_month", "state"]).reset_index(drop=True)
+
+
+def year_ago_class_summary(pairs: pd.DataFrame) -> dict[str, Any]:
+    labels = ["a", "b", "c", "d"]
+
+    def counts(part: pd.DataFrame) -> dict[str, int]:
+        return {label: int((part["year_ago_class"] == label).sum()) for label in labels}
+
+    d_cases = pairs[pairs["year_ago_class"] == "d"].copy()
+    d_cases["absolute"] = d_cases["difference"].abs()
+    d_cases = d_cases.sort_values(["absolute", "year_ago_month", "state"], ascending=[False, True, True])
+    with_step = int(d_cases["d_has_revised_preliminary_step"].sum())
+    return {
+        "compared": int(len(pairs)),
+        "counts": counts(pairs),
+        "by_state": {state: counts(pairs[pairs["state"] == state]) for state in STATE_NAMES},
+        "by_data_year": {
+            year: counts(pairs[pairs["year_ago_month"].str[:4] == year])
+            for year in sorted(pairs["year_ago_month"].str[:4].unique())
+        },
+        "tick_limit_d": 13,
+        "d_with_revised_preliminary_step": with_step,
+        "d_without_any_annual_step": int(len(d_cases) - with_step),
+        "d_cases": d_cases[
+            [
+                "state",
+                "year_ago_month",
+                "first_print_issue",
+                "first_print_cell",
+                "first_print",
+                "year_ago_issue",
+                "year_ago_cell",
+                "year_ago",
+                "current_price",
+                "difference",
+                "d_has_revised_preliminary_step",
+            ]
+        ].to_dict("records"),
+    }
+
+
+def revised_preliminary_test(pairs: pd.DataFrame, releases: dict[int, dict[str, str]]) -> dict[str, Any]:
+    """Compare change rates with and without a prior-year final release in between.
+
+    Only comparisons whose year-ago issue precedes the data year's own final label
+    are used, so the final release itself cannot explain a change.
+    """
+
+    def group(row: Any) -> str | None:
+        year = int(row.year_ago_month[:4])
+        final, prior = releases.get(year), releases.get(year - 1)
+        if final is not None and row.year_ago_issue >= final["issue_month"]:
+            return None
+        if prior is not None and row.first_print_issue < prior["issue_month"] <= row.year_ago_issue:
+            return "prior_year_final_in_between"
+        return "no_annual_release_in_between"
+
+    frame = pairs.copy()
+    frame["group"] = [group(row) for row in frame.itertuples(index=False)]
+    frame = frame[frame["group"].notna()]
+    frame["changed"] = frame["year_ago_class"] != "a"
+
+    def block(part: pd.DataFrame) -> dict[str, Any]:
+        compared = int(len(part))
+        changed = int(part["changed"].sum())
+        return {"compared": compared, "changed": changed, "change_rate": round(changed / compared, 4) if compared else None}
+
+    return {
+        name: {
+            **block(frame[frame["group"] == name]),
+            "by_data_year": {
+                year: block(part)
+                for year, part in frame[frame["group"] == name].groupby(frame["year_ago_month"].str[:4])
+            },
+        }
+        for name in ("prior_year_final_in_between", "no_annual_release_in_between")
+    }
+
+
+def write_year_ago_differences(path: Path, pairs: pd.DataFrame) -> None:
+    """Commit every difference and its class without committing a price level."""
+
+    rows = pairs[pairs["year_ago_class"] != "a"]
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle, lineterminator="\n")
         writer.writerow(YEAR_AGO_COLUMNS)
-        for item in rows:
+        for item in rows.itertuples(index=False):
             writer.writerow(
                 [
-                    item["state"],
-                    item["year_ago_month"],
-                    item["earlier_issue"],
-                    item["issue_month"],
-                    item["year_ago_cell"],
-                    f"{item['difference']:.2f}",
+                    item.state,
+                    item.year_ago_month,
+                    item.first_print_issue,
+                    item.year_ago_issue,
+                    item.year_ago_cell,
+                    f"{item.difference:.2f}",
+                    item.year_ago_class,
                 ]
             )
 
@@ -421,14 +578,19 @@ def command_checks(root: Path) -> int:
     current = _frozen_prices(root)
     if current["reference_month"].max() > LAST_REFERENCE_MONTH:
         raise FetchError("A frozen-extract row after the window was read.")
+    releases = annual_final_releases(root, _verified_sources(root))
+    pairs = classify_year_ago(frame, current, releases)
     payload = {
         "year_ago": year_ago_check(frame),
         "year_ago_versus_current": year_ago_versus_current(frame, current),
+        "annual_final_releases": {str(year): releases[year] for year in sorted(releases)},
+        "year_ago_classes": year_ago_class_summary(pairs),
+        "revised_preliminary_test": revised_preliminary_test(pairs, releases),
         "revisions": revision_statistics(frame, current),
         "md_outliers": outlier_report(frame, current),
     }
     _write_json(root / OUTPUT_DIRECTORY / CHECKS_FILE, payload)
-    write_year_ago_differences(root / YEAR_AGO_FILE, payload["year_ago"]["mismatches"])
+    write_year_ago_differences(root / YEAR_AGO_FILE, pairs)
     summary = {key: value for key, value in payload["year_ago"].items() if key != "mismatches"}
     print(json.dumps({**payload, "year_ago": summary}, indent=2))
     return 0

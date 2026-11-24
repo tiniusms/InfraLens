@@ -43,6 +43,7 @@ _MONTH = re.compile(r"^(\d{4})-(0[1-9]|1[0-2])$")
 _MONTH_LABEL = re.compile(r"^([A-Za-z]+)\s+(\d{4})$")
 _TABLE_NAME = re.compile(r"^table_5_0?6_a\.xlsx$", re.IGNORECASE)
 _CELL = re.compile(r"^([A-Z]+)(\d+)$")
+_FINAL_NOTE = re.compile(r"values for (\d{4}) are final", re.IGNORECASE)
 _MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 _RELS = "http://schemas.openxmlformats.org/package/2006/relationships"
 _DOC_RELS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
@@ -367,6 +368,17 @@ def parse_price_table(table: bytes, issue_month: str, table_name: str) -> list[F
     return records
 
 
+def final_data_years(table: bytes, issue_month: str) -> dict[int, str]:
+    """Data years this in-window issue's notes label final, with the note's cell."""
+
+    refuse_reference_month(reference_month_for_issue(issue_month))
+    found: dict[int, str] = {}
+    for number, row in sorted(_read_rows(table).items()):
+        for match in _FINAL_NOTE.finditer(" ".join(row.get("A", "").split())):
+            found.setdefault(int(match.group(1)), f"A{number}")
+    return found
+
+
 def parse_issue(issue_zip: Any, issue_month: str) -> list[FirstPrintRecord]:
     """Parse one issue ZIP. An out-of-window month is refused before the ZIP is opened."""
 
@@ -461,6 +473,7 @@ __all__ = [
     "ReferenceMonthRefused",
     "TableLayoutError",
     "add_months",
+    "final_data_years",
     "find_price_table_name",
     "first_print_issue_months",
     "issue_archive_stem",

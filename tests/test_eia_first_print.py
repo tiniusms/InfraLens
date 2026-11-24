@@ -28,6 +28,7 @@ from infralens.data.epm_first_print import (
     ReferenceMonthRefused,
     TableLayoutError,
     add_months,
+    final_data_years,
     find_price_table_name,
     first_print_issue_months,
     issue_archive_stem,
@@ -374,6 +375,74 @@ def test_year_ago_check_reports_differences_and_changes_nothing() -> None:
     pd.testing.assert_frame_equal(frame, before)
 
 
+def test_final_data_years_reads_the_note_and_refuses_later_months() -> None:
+    rows = _table_rows("2020-03")
+    rows[67] = {"A": "Notes: - Values for 2018 are final. - Values for 2019 are preliminary estimates."}
+    assert final_data_years(_workbook(rows), "2020-05") == {2018: "A67"}
+    rows[67] = {"A": "Notes: - Values are preliminary estimates based on a cutoff model sample."}
+    assert final_data_years(_workbook(rows), "2020-05") == {}
+    with pytest.raises(ReferenceMonthRefused):
+        final_data_years(b"not a workbook", "2024-09")
+
+
+def _class_fixture() -> tuple[pd.DataFrame, pd.DataFrame, dict]:
+    frame = pd.DataFrame(
+        [
+            _record("VA", "2018-03", 8.00, 7.00),
+            _record("VA", "2019-03", 8.50, 8.00),
+            _record("MD", "2018-03", 9.00, 7.00),
+            _record("MD", "2019-03", 9.50, 9.20),
+            _record("OH", "2018-11", 9.00, 7.00),
+            _record("OH", "2019-11", 9.50, 9.30),
+            _record("PA", "2018-03", 7.00, 6.00),
+            _record("PA", "2019-03", 7.50, 7.10),
+            _record("NJ", "2016-03", 10.00, 9.00),
+            _record("NJ", "2017-03", 10.50, 10.10),
+        ]
+    )
+    current = pd.DataFrame(
+        [
+            ("VA", "2018-03", 8.10),
+            ("MD", "2018-03", 9.20),
+            ("OH", "2018-11", 9.40),
+            ("PA", "2018-03", 7.20),
+            ("NJ", "2016-03", 10.20),
+        ],
+        columns=["state", "reference_month", "current_price"],
+    )
+    releases = {2017: {"issue_month": "2018-10"}, 2018: {"issue_month": "2019-10"}}
+    return frame, current, releases
+
+
+def test_year_ago_classes_follow_the_defined_order() -> None:
+    frame, current, releases = _class_fixture()
+    before = frame.copy(deep=True)
+    pairs = first_print_tool.classify_year_ago(frame, current, releases)
+    labels = dict(zip(pairs["state"], pairs["year_ago_class"]))
+    assert labels == {"VA": "a", "MD": "b", "OH": "c", "PA": "d", "NJ": "d"}
+    steps = dict(zip(pairs["state"], pairs["d_has_revised_preliminary_step"]))
+    assert steps["PA"] and not steps["NJ"] and not steps["OH"]
+    summary = first_print_tool.year_ago_class_summary(pairs)
+    assert summary["counts"] == {"a": 1, "b": 1, "c": 1, "d": 2}
+    assert (summary["d_with_revised_preliminary_step"], summary["d_without_any_annual_step"]) == (1, 1)
+    pd.testing.assert_frame_equal(frame, before)
+
+
+def test_a_missing_current_value_is_refused_not_classified() -> None:
+    frame, current, releases = _class_fixture()
+    with pytest.raises(first_print_tool.FetchError, match="missing a value"):
+        first_print_tool.classify_year_ago(frame, current[current["state"] != "PA"], releases)
+
+
+def test_revised_preliminary_test_excludes_comparisons_after_the_final_label() -> None:
+    frame, current, releases = _class_fixture()
+    pairs = first_print_tool.classify_year_ago(frame, current, releases)
+    result = first_print_tool.revised_preliminary_test(pairs, releases)
+    step, control = result["prior_year_final_in_between"], result["no_annual_release_in_between"]
+    assert (step["compared"], step["changed"]) == (3, 2)
+    assert (control["compared"], control["changed"]) == (1, 1)
+
+
 def _mock_client(table: bytes, *, status: int = 200) -> httpx.Client:
     body = _issue_zip(table)
 
@@ -492,6 +561,7 @@ def test_committed_year_ago_differences_hold_no_price_level() -> None:
         assert row["year_ago_issue"] <= "2024-08"
         assert re.fullmatch(r"-?\d+\.\d{2}", row["difference_cents_per_kwh"])
         assert float(row["difference_cents_per_kwh"]) != 0
+        assert row["year_ago_class"] in {"b", "c", "d"}
 
 
 def test_first_print_files_stay_local_only() -> None:

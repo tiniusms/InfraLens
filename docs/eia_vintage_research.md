@@ -11,7 +11,7 @@
 2. **A full as-of panel cannot be rebuilt.** Each issue shows only the reference month and the same month a year earlier.
 3. **Revisions are material.** 90% of first prints differ from the frozen extract. The mean absolute change is 0.093 cents/kWh (0.90%).
 4. **The m+3 rule holds for month-end origins only.** The earliest public file was never after the end of month m+3 in 171 issues. Day 1 of m+3 is not a publication date, and mid-month origins fail in at least 1 and at most 3 issues.
-5. **The year-ago column often differs from first print.** It matches in 259 of 670 comparisons (38.7%). The cause of all 411 differences is not established (section 7.2).
+5. **The year-ago column often differs from first print.** It matches in 259 of 670 comparisons (38.7%). Of the 411 differences, 216 equal the current value, 1 follows the data year's final release, and **194 are unexplained under the primary definition** (section 7.2). That exceeds the owner's limit of 13, so **criterion 5 is not ticked**.
 
 ## 2. Sources
 
@@ -148,7 +148,7 @@ Each issue's year-ago value was compared with the first print from 12 issues ear
 | 2022 | 60 | 14 | 46 |
 | 2023 | 30 | 9 | 21 |
 
-**Interpretation.** The ten largest differences were opened on both sides, and all ten agree with the parser, so they are differences in EIA's published tables rather than parsing errors at those cells. Revision is the likely explanation, but it is **not proven for all 411**. A single annual revision step would make whole issues match or differ, yet 98 of 134 issues are mixed across the five states (11 match on all five, 25 on none). This check therefore does not independently validate first-print values. The hand check does that for the values it covers.
+The ten largest differences were opened on both sides, and all ten agree with the parser, so they are differences in EIA's published tables rather than parsing errors at those cells. 98 of 134 issues are mixed across the five states (11 match on all five, 25 on none), so no single issue-wide change explains the pattern.
 
 | State | Month | First print (issue, cell) | Value | Year-ago (issue, cell) | Value | Difference |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -162,6 +162,99 @@ Each issue's year-ago value was compared with the first print from 12 issues ear
 | PA | 2021-05 | 2021-07 D15 | 8.10 | 2022-07 E15 | 8.67 | +0.57 |
 | VA | 2023-05 | 2023-07 D38 | 9.05 | 2024-07 E38 | 9.61 | +0.56 |
 | MD | 2014-12 | 2015-02 D35 | 10.89 | 2016-02 E35 | 10.37 | -0.52 |
+
+**Limitation.** The year-ago column tests revision timing more than parsing. Parser accuracy rests on the hand check in section 7.1.
+
+### 7.2.1 Classification of all 670 comparisons
+
+Only reference months up to 2024-06 were used, and no holdout artifact was opened. Values are compared at two decimals, and the first matching class applies.
+
+- **(a)** The year-ago value matches first print.
+- **(b)** It differs, and equals the frozen-extract value (explained by revision).
+- **(c)** It differs from both, and its issue is on or after the data year's annual final release (explained by an intermediate revision).
+- **(d)** Unexplained.
+
+**Primary definition of the annual release:** the first issue whose Table 5.6.A notes say values for that data year are final. Issue dates are file-date proxies.
+
+| Data year | First issue labelled final | Note cell | Server date | Table built |
+| --- | --- | --- | --- | --- |
+| 2011 | 2012-10 | A67 | 2012-10-31 | 2012-10-26 |
+| 2012 | 2013-12 | A67 | 2013-12-20 | 2013-12-20 |
+| 2013 | 2015-02 | A67 | 2015-03-04 | 2015-03-04 |
+| 2014 | 2015-11 | A67 | 2015-12-21 | 2015-12-18 |
+| 2015 | 2016-11 | A67 | 2016-11-29 | 2016-11-29 |
+| 2016 | 2017-11 | A67 | 2017-12-01 | 2017-12-01 |
+| 2017 | 2018-10 | A67 | 2018-10-24 | 2018-10-24 |
+| 2018 | 2019-10 | A67 | 2019-10-24 | 2019-10-24 |
+| 2019 | 2020-10 | A67 | 2020-10-26 | 2020-10-23 |
+| 2020 | 2021-11 | A67 | 2021-11-24 | 2021-11-19 |
+| 2021 | 2022-11 | A67 | 2022-11-22 | 2022-11-21 |
+| 2022 | 2023-10 | A67 | 2023-10-24 | 2023-10-23 |
+
+Data year 2023 has no final label in any issue through 2024-08, so none of its comparisons can be class (c).
+
+| Class | Count | Share of 670 |
+| --- | --- | --- |
+| (a) matches first print | 259 | 38.7% |
+| (b) equals current value | 216 | 32.2% |
+| (c) after final release | 1 | 0.1% |
+| (d) unexplained | 194 | 29.0% |
+
+| State | (a) | (b) | (c) | (d) |
+| --- | --- | --- | --- | --- |
+| VA | 72 | 44 | 0 | 18 |
+| PA | 48 | 43 | 1 | 42 |
+| OH | 44 | 43 | 0 | 47 |
+| MD | 51 | 44 | 0 | 39 |
+| NJ | 44 | 42 | 0 | 48 |
+
+| Data year | (a) | (b) | (c) | (d) |
+| --- | --- | --- | --- | --- |
+| 2012 | 17 | 13 | 0 | 10 |
+| 2013 | 51 | 5 | 0 | 4 |
+| 2014 | 21 | 20 | 0 | 19 |
+| 2015 | 20 | 19 | 1 | 20 |
+| 2016 | 30 | 16 | 0 | 14 |
+| 2017 | 16 | 25 | 0 | 19 |
+| 2018 | 20 | 26 | 0 | 14 |
+| 2019 | 21 | 22 | 0 | 17 |
+| 2020 | 22 | 19 | 0 | 19 |
+| 2021 | 18 | 25 | 0 | 17 |
+| 2022 | 14 | 23 | 0 | 23 |
+| 2023 | 9 | 3 | 0 | 18 |
+
+**Tick rule result: not met.** Class (d) is 194 of 670 (29.0%), above the limit of 13 (2%). Criterion 5 stays unticked.
+
+### 7.2.2 Class (d) cases opened in the source tables
+
+Five cases were opened directly in the raw workbook XML: the four largest differences and the only (d) case with no annual release between its two prints. **All five read correctly.** An earlier pass also opened MD 2019-05 (first print 9.92, year-ago 10.30), which also read correctly.
+
+| State | Month | First print (issue, table, cell) | Source value | Year-ago (issue, table, cell) | Source value | Frozen extract | Year-ago issue's note |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| NJ | 2021-05 | 2021-07, `Table_5_06_A.xlsx`, D13 | 12.37 | 2022-07, `Table_5_06_A.xlsx`, E13 | 13.08 | 12.97 | Values are preliminary estimates based on a cutoff model sample |
+| PA | 2021-05 | 2021-07, `Table_5_06_A.xlsx`, D15 | 8.1 | 2022-07, `Table_5_06_A.xlsx`, E15 | 8.67 | 8.69 | Values are preliminary estimates based on a cutoff model sample |
+| VA | 2023-05 | 2023-07, `Table_5_06_A.xlsx`, D38 | 9.0500000000000007 | 2024-07, `Table_5_06_A.xlsx`, E38 | 9.61 | 9.28 | Values are preliminary estimates based on a cutoff model sample |
+| VA | 2020-01 | 2020-03, `Table_5_06_A.xlsx`, D38 | 8.3000000000000007 | 2021-03, `Table_5_06_A.xlsx`, E38 | 7.89 | 7.84 | Values are preliminary estimates based on a cutoff model sample |
+| VA | 2020-08 | 2020-10, `Table_5_06_A.xlsx`, D38 | 7.63 | 2021-10, `Table_5_06_A.xlsx`, E38 | 7.62 | 7.55 | Values are preliminary estimates based on a cutoff model sample |
+
+### 7.2.3 Likely explanation, not proven
+
+EIA's Technical Notes say monthly data are revised after the prior year's data are finalized and are then released as revised preliminary. That points to a second annual step for each data year, when the **prior** year is labelled final. EPM does not date that step directly, so this memo infers it from the prior year's final label.
+
+The test uses only comparisons whose year-ago issue comes before the data year's own final label:
+
+| Between first print and year-ago issue | Compared | Changed | Change rate |
+| --- | --- | --- | --- |
+| Prior-year final release | 425 | 216 | 50.8% |
+| No annual release | 25 | 1 | 4.0% |
+
+193 of the 194 class (d) cases have a prior-year final release between their two prints. If that step counted as the annual revised release, class (d) would fall to **1** (VA 2020-08, a 0.01 cents/kWh difference).
+
+This reading was **not** used for the tick, for three reasons:
+
+- It would change the outcome of a rule set before the result was known, so that choice belongs to the owner.
+- It is weak as a class definition, because nearly every comparison has one of the two annual steps between its prints.
+- The control group is small (25 comparisons in data years 2012, 2013, 2020), and the step does not always change values: data year 2013 changed in only 4 of 45 comparisons.
 
 ### 7.3 Maryland outliers, reported unchanged
 
@@ -181,7 +274,7 @@ Neither first print nor the current value is always the better number. Both valu
 - They cover periods Version 1 saw in revised form, so they are **not untouched data**. Untouched data starts with Tier 1 snapshots from 2026-11-24.
 - Use m+3 only with month-end origins.
 - The Phase 3 preregistration must name the tier for training, features, and evaluation targets, and say how the two MD outliers are handled before any result is seen.
-- `DECISIONS.md` lists a failed hand or consistency check as a revisit trigger. The hand check passed. The year-ago check had no preset pass threshold, so whether its 38.7% match rate triggers a revisit is the owner's call.
+- `DECISIONS.md` lists a failed hand or consistency check as a revisit trigger. The hand check passed. The year-ago classification did not meet the owner's tick rule, so criterion 5 stays open until the owner decides how to treat the revised-preliminary step (section 7.2.3).
 
 ## 9. Reproduce
 
