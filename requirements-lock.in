@@ -1,0 +1,5 @@
+# Input for requirements-lock.txt, alongside the dev, demo, and api extras in
+# pyproject.toml. These are the install and build tools, locked with the rest.
+pip==26.3
+setuptools==84.2.1
+wheel==0.48.0

@@ -42,19 +42,15 @@ jobs:
         with:
           python-version: "3.13"
           cache: pip
-          cache-dependency-path: |
-            pyproject.toml
-            requirements-api.txt
+          cache-dependency-path: requirements-lock.txt
 
-      # requirements-api.txt is used as a constraints file so the shared API
-      # packages resolve to the pinned, tested versions. Without it a fresh
-      # resolve can pick newer releases (observed 2026-11-13: annotated-doc
-      # 0.0.6 instead of 0.0.5), and the pin check in
-      # tests/test_portable_deploy.py fails.
-      - name: Install the package with the documented extras
+      # requirements-lock.txt pins every package, including pip and the build
+      # backend, with hashes (DECISIONS.md, 2026-11-23). The project itself is
+      # installed without resolving anything further.
+      - name: Install the locked environment
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e ".[dev,demo,api]" -c requirements-api.txt
+          python -m pip install --require-hashes --no-deps --only-binary :all: -r requirements-lock.txt
+          python -m pip install --no-deps --no-build-isolation -e .
           python -m pip check
 
       - name: Run regression tests (final holdout excluded)
