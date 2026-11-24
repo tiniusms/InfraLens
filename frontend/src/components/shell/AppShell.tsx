@@ -25,6 +25,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const sectionsButton = useRef<HTMLButtonElement>(null);
   const section = currentSection(pathname);
 
+  // The sheet exists only in the mobile layout, so it must not reopen after a round trip through desktop.
+  if (desktop && open) {
+    setOpen(false);
+  }
+
   return (
     <div className="min-h-screen bg-paper text-ink">
       <a
@@ -33,8 +38,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         Skip to content
       </a>
-      {desktop ? (
-        <div className="flex min-h-screen">
+      {/* The page stays at one tree position in both layouts, so crossing the breakpoint keeps its state. */}
+      <div className={desktop ? "flex min-h-screen" : "flex min-h-screen flex-col"}>
+        {desktop ? (
           <aside className="sticky top-0 flex h-screen w-[var(--sidebar-width)] shrink-0 flex-col border-r border-line bg-paper-inset py-6">
             <Wordmark />
             <div className="mt-8 px-1">
@@ -44,42 +50,41 @@ export function AppShell({ children }: { children: ReactNode }) {
               <ThemeSwitch />
             </div>
           </aside>
-          <div className="min-w-0 flex-1">{children}</div>
-        </div>
-      ) : (
-        <>
-          <header className="flex items-center justify-between gap-4 border-b border-line bg-paper-inset px-4 py-3">
-            <div className="min-w-0">
-              <p className="font-serif text-[22px] leading-[30px] font-semibold text-ink">InfraLens</p>
-              <p className="truncate text-[12px] leading-4 text-ink-muted">{section}</p>
-            </div>
-            <Button
-              ref={sectionsButton}
-              aria-haspopup="dialog"
-              aria-expanded={open}
-              onClick={() => setOpen(true)}
-              className="shrink-0"
+        ) : (
+          <>
+            <header className="flex items-center justify-between gap-4 border-b border-line bg-paper-inset px-4 py-3">
+              <div className="min-w-0">
+                <p className="font-serif text-[22px] leading-[30px] font-semibold text-ink">InfraLens</p>
+                <p className="truncate text-[12px] leading-4 text-ink-muted">{section}</p>
+              </div>
+              <Button
+                ref={sectionsButton}
+                aria-haspopup="dialog"
+                aria-expanded={open}
+                onClick={() => setOpen(true)}
+                className="shrink-0"
+              >
+                Sections
+              </Button>
+            </header>
+            <Sheet
+              open={open}
+              onOpenChange={setOpen}
+              title="Sections"
+              onCloseAutoFocus={(event) => {
+                event.preventDefault();
+                sectionsButton.current?.focus();
+              }}
             >
-              Sections
-            </Button>
-          </header>
-          <Sheet
-            open={open}
-            onOpenChange={setOpen}
-            title="Sections"
-            onCloseAutoFocus={(event) => {
-              event.preventDefault();
-              sectionsButton.current?.focus();
-            }}
-          >
-            <PrimaryNav onNavigate={() => setOpen(false)} />
-            <div className="mt-8 px-3">
-              <ThemeSwitch />
-            </div>
-          </Sheet>
-          {children}
-        </>
-      )}
+              <PrimaryNav onNavigate={() => setOpen(false)} />
+              <div className="mt-8 px-3">
+                <ThemeSwitch />
+              </div>
+            </Sheet>
+          </>
+        )}
+        <div className="min-w-0 flex-1">{children}</div>
+      </div>
     </div>
   );
 }
