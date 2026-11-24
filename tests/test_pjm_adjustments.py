@@ -11,6 +11,7 @@ from xml.etree import ElementTree as ET
 
 import pytest
 
+from data_cache_skips import skip_missing_cache
 from infralens.screening.pjm_adjustments import (
     ABOVE_EMBEDDED_MW,
     TOTAL_ASSOCIATED_MW,
@@ -120,7 +121,7 @@ def test_as_of_filter_uses_tables_file_availability() -> None:
 
 def test_official_adjustment_workbooks() -> None:
     if not _official_files_present():
-        pytest.skip("Official PJM Tables workbooks are not in data/raw/pjm.")
+        skip_missing_cache("pjm_workbooks")
     retrieved_at = datetime(2026, 10, 14, 19, 5)
     rows = load_slice2_adjustments(_RAW, retrieved_at=retrieved_at)
     assert len(rows) == 1848
@@ -189,7 +190,7 @@ def test_official_adjustment_workbooks() -> None:
 
 def test_official_b9_workbook_rejects_corrupt_cells(tmp_path: Path) -> None:
     if not _official_files_present():
-        pytest.skip("Official PJM Tables workbooks are not in data/raw/pjm.")
+        skip_missing_cache("pjm_workbooks")
     source = source_for_vintage(2026)
     original = _RAW / source.source_file
     table = ADJUSTMENT_TABLES[0]

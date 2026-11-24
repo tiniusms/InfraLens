@@ -8,6 +8,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from data_cache_skips import skip_missing_cache
 from infralens.demo.eia_views import (
     ACTUAL_SERIES_LABEL,
     CLOSED_PREDICTION_ROLE,
@@ -59,7 +60,7 @@ def test_price_history_schema_covers_five_states_in_order(tmp_path: Path) -> Non
 def test_local_price_history_matches_the_frozen_extract() -> None:
     path = default_artifact_paths().price_history
     if not path.is_file():
-        pytest.skip("local EIA parquet is not on this machine")
+        skip_missing_cache("eia_history")
     history = load_price_history(path, extract_id=FROZEN_EXTRACT_ID)
     assert history.extract_id == FROZEN_EXTRACT_ID
     assert history.earliest_period == "2001-01"
@@ -173,7 +174,7 @@ def test_stored_intervals_keep_zero_coverage_and_are_not_synthesized(tmp_path: P
 def test_local_holdout_file_matches_the_closed_window() -> None:
     path = default_artifact_paths().holdout_cases
     if not path.is_file():
-        pytest.skip("local holdout cases are not on this machine")
+        skip_missing_cache("holdout_cases")
     comparison = load_holdout_comparison(path)
     assert comparison.row_count == 60
     assert comparison.empirical_interval_coverage == 0

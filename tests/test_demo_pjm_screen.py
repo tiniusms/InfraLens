@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from data_cache_skips import skip_missing_cache
 from infralens.data.manifest import default_manifest_path, load_manifest
 from infralens.demo.foundation import DemoDataError, default_artifact_paths
 from infralens.demo.pjm_screen import (
@@ -104,7 +105,7 @@ def _manifest_time(name: str) -> str:
 def test_aep_cutoffs_match_the_cached_workbooks() -> None:
     raw_dir = default_artifact_paths().pjm_2025_tables.parent
     if not all(path.is_file() for path in workbook_paths(raw_dir)):
-        pytest.skip("Official PJM Tables workbooks are not in data/raw/pjm.")
+        skip_missing_cache("pjm_workbooks")
     b1_rows, adjustment_rows, retrieval = load_screening_tables(raw_dir)
     assert "not a PJM publication date" in retrieval.note
     assert retrieval.loader_retrieved_at.tzinfo is not None
@@ -147,7 +148,7 @@ def test_aep_cutoffs_match_the_cached_workbooks() -> None:
 def test_date_before_the_2025_release_is_unpublished() -> None:
     raw_dir = default_artifact_paths().pjm_2025_tables.parent
     if not all(path.is_file() for path in workbook_paths(raw_dir)):
-        pytest.skip("Official PJM Tables workbooks are not in data/raw/pjm.")
+        skip_missing_cache("pjm_workbooks")
     b1_rows, adjustment_rows, retrieval = load_screening_tables(raw_dir)
     shown = present_screening(
         screen_cached_zone(b1_rows, adjustment_rows, "AEP", 2026, date(2025, 1, 23)),

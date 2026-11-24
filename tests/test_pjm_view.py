@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from data_cache_skips import skip_missing_cache
 from infralens.screening.pjm_adjustments import (
     ABOVE_EMBEDDED_MW,
     TOTAL_ASSOCIATED_MW,
@@ -196,7 +197,7 @@ def test_distinct_retrieval_timestamps_stay_on_their_source_tables() -> None:
 
 def test_official_aep_2026_view_matches_workbook_columns() -> None:
     if not all((_RAW / source.source_file).is_file() for source in TABLE_B1_SOURCES):
-        pytest.skip("Official PJM Tables workbooks are not in data/raw/pjm.")
+        skip_missing_cache("pjm_workbooks")
     b1 = load_slice1_tables(_RAW, retrieved_at=_RETRIEVED)
     adjustments = load_slice2_adjustments(_RAW, retrieved_at=_RETRIEVED)
     early = screen_zone_year(b1, adjustments, "AEP", 2026, "2025-06-30")

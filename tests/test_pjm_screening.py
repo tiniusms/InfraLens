@@ -11,6 +11,7 @@ from xml.etree import ElementTree as ET
 
 import pytest
 
+from data_cache_skips import skip_missing_cache
 from infralens.screening.pjm_b1 import (
     B1Row,
     PjmB1Error,
@@ -154,7 +155,7 @@ def test_parquet_roundtrip_preserves_null_revision(tmp_path: Path) -> None:
 
 def test_official_workbooks_match_published_b1_cells() -> None:
     if not _official_files_present():
-        pytest.skip("Official PJM Tables workbooks are not in data/raw/pjm.")
+        skip_missing_cache("pjm_workbooks")
     retrieved_at = datetime(2026, 10, 14, 18, 30)
     rows = load_slice1_tables(_RAW, retrieved_at=retrieved_at)
     validate_b1_rows(rows)
@@ -199,7 +200,7 @@ def test_official_workbooks_match_published_b1_cells() -> None:
 
 def test_official_ingest_rejects_corrupt_workbooks(tmp_path: Path) -> None:
     if not _official_files_present():
-        pytest.skip("Official PJM Tables workbooks are not in data/raw/pjm.")
+        skip_missing_cache("pjm_workbooks")
     source = source_for_vintage(2026)
     original = _RAW / source.source_file
     cases = (
@@ -218,7 +219,7 @@ def test_official_ingest_rejects_corrupt_workbooks(tmp_path: Path) -> None:
 
 def test_official_rows_reject_duplicate_keys_and_invented_dates() -> None:
     if not _official_files_present():
-        pytest.skip("Official PJM Tables workbooks are not in data/raw/pjm.")
+        skip_missing_cache("pjm_workbooks")
     retrieved_at = datetime(2026, 10, 14, 18, 30)
     rows = load_slice1_tables(_RAW, retrieved_at=retrieved_at)
     with pytest.raises(PjmB1Error, match="Duplicate"):
