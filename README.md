@@ -59,7 +59,7 @@ sysctl -n sysctl.proc_translated  # must print 0; 1 means this shell runs under 
 
 If `uname -m` prints `x86_64`, the terminal is running under Rosetta. Turn off "Open using Rosetta" for the terminal app (Finder, Get Info), open a new window, and check again.
 
-### 2. Create an arm64 Python 3.11+ virtual environment
+### 2. Create an arm64 Python 3.13 virtual environment
 
 A virtual environment keeps the architecture of the Python that creates it, so check that interpreter first:
 
@@ -67,7 +67,7 @@ A virtual environment keeps the architecture of the Python that creates it, so c
 python3 -c "import platform, sys; print(platform.machine(), sys.version.split()[0])"
 ```
 
-It must print `arm64` and version 3.11 or later. If it prints `x86_64`, that `python3` is an Intel build, such as an Intel Miniconda or a Homebrew install under `/usr/local`. Use an arm64 Python instead, such as the python.org macOS installer (universal2) or Homebrew under `/opt/homebrew`. Then:
+It must print `arm64` and a 3.13 version, which the lock targets. If it prints `x86_64`, that `python3` is an Intel build, such as an Intel Miniconda or a Homebrew install under `/usr/local`. Use an arm64 Python instead, such as the python.org macOS installer (universal2) or Homebrew under `/opt/homebrew`. Then:
 
 ```bash
 python3 -m venv .venv
@@ -77,15 +77,21 @@ python -c "import platform; print(platform.machine())"   # must print arm64
 
 If a `.venv` already exists, check it before using it (see "Troubleshooting: an x86_64 `.venv`" below). Do not reuse an x86_64 `.venv`, and do not create the new environment on top of it. The repository `.gitignore` covers `.venv/` and `venv/`. An environment with any other name stays out of git only through the `.gitignore` file that `venv` writes inside it.
 
-### 3. Install with the CI constraints
+### 3. Install from the lock
 
 ```bash
-python -m pip install --upgrade pip
-python -m pip install -e ".[dev,demo,api]" -c requirements-api.txt
+python -m pip install --require-hashes --no-deps --only-binary :all: -r requirements-lock.txt
+python -m pip install --no-deps --no-build-isolation -e .
 python -m pip check
 ```
 
-`requirements-api.txt` is used as a pip constraints file, as in CI, so the shared API packages resolve to the pinned, tested versions. Without it a fresh resolve can pick a newer release (on 2026-11-13, `annotated-doc` 0.0.6 instead of the pinned 0.0.5), and the pin check in `tests/test_portable_deploy.py` fails. `pip check` must report no broken requirements.
+`requirements-lock.txt` pins the full `dev`, `demo`, and `api` environment, plus pip and the build tools, with SHA-256 hashes for macOS arm64 and Linux x86_64 on Python 3.13. CI uses the same three commands. `pip check` must report no broken requirements.
+
+Maintainers regenerate the lock with uv 0.13.9. uv is not needed to install or run the project, and a change to a locked version needs owner approval:
+
+```bash
+uv pip compile pyproject.toml requirements-lock.in --extra dev --extra demo --extra api --universal --python-version 3.13 --generate-hashes -o requirements-lock.txt
+```
 
 ### 4. Run the Python regression suite
 
@@ -167,12 +173,13 @@ Found on 2026-11-04 on an Apple Silicon Mac (`DECISIONS.md`, 2026-11-04).
 
 ## Portable demo
 
-Python 3.11+ is required. An EIA API key is not required to run the existing demo. On an Apple Silicon Mac, follow "Native Apple Silicon setup" above.
+Python 3.13 is required for the locked install. An EIA API key is not required to run the existing demo. On an Apple Silicon Mac, follow "Native Apple Silicon setup" above.
 
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-python -m pip install -e ".[dev,demo]" -c requirements-api.txt
+source .venv/bin/activate
+python -m pip install --require-hashes --no-deps --only-binary :all: -r requirements-lock.txt
+python -m pip install --no-deps --no-build-isolation -e .
 python -m streamlit run src/infralens/demo/app.py
 ```
 
@@ -182,10 +189,9 @@ The three-tab defense walkthrough, expected example values, and portable-mode li
 
 ## Local API and React frontend
 
-The FastAPI adapter and the Vite app talk to each other on this machine. They do not use the retired public hosts. Install the API extra with the demo extra:
+The FastAPI adapter and the Vite app talk to each other on this machine. They do not use the retired public hosts. The locked install above includes the API dependencies:
 
 ```bash
-python -m pip install -e ".[dev,demo,api]" -c requirements-api.txt
 INFRALENS_CORS_ORIGINS=http://127.0.0.1:5173,http://localhost:5173 \
   python -m uvicorn infralens.api.app:app
 ```
@@ -227,7 +233,7 @@ Development checks already produced the frozen comparison: `python -m infralens.
 
 ## Implemented stack
 
-Python 3.11+ installable package in `src/infralens`. Core dependencies are pandas, NumPy, PyArrow, DuckDB, httpx, scikit-learn, Matplotlib, and python-dotenv. The `dev` extra adds pytest and Jupyter. The `demo` extra adds Streamlit and Altair. The HTTP client is httpx.
+Installable package in `src/infralens`. The locked environment uses Python 3.13; `pyproject.toml` still declares 3.11+ (TD-30). Core dependencies are pandas, NumPy, PyArrow, DuckDB, httpx, scikit-learn, Matplotlib, and python-dotenv. The `dev` extra adds pytest and Jupyter. The `demo` extra adds Streamlit and Altair. The HTTP client is httpx.
 
 The repository includes EIA commercial retail-sales ingest, publication-lag-constrained development backtests (seasonal naive, Ridge, and a histogram-gradient-boosting comparison that lost on development MAE), state-specific absolute-residual intervals, origin-specific Ridge coefficient explanations, a deterministic annual electricity-cost identity, PJM 2025/2026 table screening parsed from workbook ZIP/XML, and the Streamlit historical-evaluation page.
 

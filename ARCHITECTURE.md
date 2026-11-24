@@ -8,8 +8,8 @@ Supported use is local. Nothing in the application source calls a hosted InfraLe
 
 | Runtime | How it starts | What it uses |
 | --- | --- | --- |
-| Streamlit demo | `python -m streamlit run src/infralens/demo/app.py` after `python -m pip install -e ".[dev,demo]" -c requirements-api.txt` | Committed holdout summary, and the four local caches when they exist. Sections 4–6 describe this page. |
-| FastAPI adapter | `python -m uvicorn infralens.api.app:app` after `python -m pip install -e ".[api]" -c requirements-api.txt` | Read-only routes under `/api/v1`: status, evaluation summary, EIA history, holdout, holdout cases, finance scenarios, PJM catalog, and PJM screen. Default listen address is `127.0.0.1:8000`. It does not train or score a model. |
+| Streamlit demo | `python -m streamlit run src/infralens/demo/app.py` after the locked install in `README.md` (`requirements-lock.txt`) | Committed holdout summary, and the four local caches when they exist. Sections 4–6 describe this page. |
+| FastAPI adapter | `python -m uvicorn infralens.api.app:app` after the locked install in `README.md` (`requirements-lock.txt`) | Read-only routes under `/api/v1`: status, evaluation summary, EIA history, holdout, holdout cases, finance scenarios, PJM catalog, and PJM screen. Default listen address is `127.0.0.1:8000`. It does not train or score a model. |
 | React frontend | `npm run dev` in `frontend/` | Vite on port 5173. `resolveApiBaseUrl` in `frontend/src/api/client.ts` returns `http://127.0.0.1:8000` when `VITE_API_BASE_URL` is unset. |
 
 Host checks stay off unless `RENDER=true`, `RENDER_EXTERNAL_HOSTNAME`, or `INFRALENS_ALLOWED_HOSTS` is set. CORS stays an explicit allowlist in `INFRALENS_CORS_ORIGINS`. Local development sets that list to the Vite origins and leaves the Render variables unset.
@@ -108,7 +108,7 @@ Post-hoc notes in `docs/final_eia_holdout_posthoc_analysis.md` and `docs/final_e
 
 ## 4. Streamlit execution
 
-Launch from the repository root, after `python -m pip install -e ".[dev,demo]" -c requirements-api.txt`:
+Launch from the repository root, after the locked install in `README.md` (`requirements-lock.txt`):
 
 ```bash
 python -m streamlit run src/infralens/demo/app.py
