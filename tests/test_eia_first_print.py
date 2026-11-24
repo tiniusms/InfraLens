@@ -425,6 +425,10 @@ def test_year_ago_classes_follow_the_defined_order() -> None:
     summary = first_print_tool.year_ago_class_summary(pairs)
     assert summary["counts"] == {"a": 1, "b": 1, "c": 1, "d": 2}
     assert (summary["d_with_revised_preliminary_step"], summary["d_without_any_annual_step"]) == (1, 1)
+    refined = dict(zip(pairs["state"], pairs["year_ago_class_refined"]))
+    assert refined == {"VA": "a", "MD": "b", "OH": "c", "PA": "c", "NJ": "d"}
+    assert summary["refined_counts"] == {"a": 1, "b": 1, "c": 2, "d": 1}
+    assert [case["state"] for case in summary["refined_d_cases"]] == ["NJ"]
     pd.testing.assert_frame_equal(frame, before)
 
 
@@ -562,6 +566,9 @@ def test_committed_year_ago_differences_hold_no_price_level() -> None:
         assert re.fullmatch(r"-?\d+\.\d{2}", row["difference_cents_per_kwh"])
         assert float(row["difference_cents_per_kwh"]) != 0
         assert row["year_ago_class"] in {"b", "c", "d"}
+        assert row["year_ago_class_refined"] in {"b", "c", "d"}
+        if row["year_ago_class"] != "d":
+            assert row["year_ago_class_refined"] == row["year_ago_class"]
 
 
 def test_first_print_files_stay_local_only() -> None:

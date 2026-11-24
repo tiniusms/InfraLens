@@ -11,7 +11,7 @@
 2. **A full as-of panel cannot be rebuilt.** Each issue shows only the reference month and the same month a year earlier.
 3. **Revisions are material.** 90% of first prints differ from the frozen extract. The mean absolute change is 0.093 cents/kWh (0.90%).
 4. **The m+3 rule holds for month-end origins only.** The earliest public file was never after the end of month m+3 in 171 issues. Day 1 of m+3 is not a publication date, and mid-month origins fail in at least 1 and at most 3 issues.
-5. **The year-ago column often differs from first print.** It matches in 259 of 670 comparisons (38.7%). Of the 411 differences, 216 equal the current value, 1 follows the data year's final release, and **194 are unexplained under the primary definition** (section 7.2). That exceeds the owner's limit of 13, so **criterion 5 is not ticked**.
+5. **The year-ago column often differs from first print.** It matches in 259 of 670 comparisons (38.7%). Under the strict reading, **194** differences are unexplained. Under the refined reading, adopted by the owner **after** the strict results, **1** is unexplained (section 7.2.4).
 
 ## 2. Sources
 
@@ -197,7 +197,7 @@ Data year 2023 has no final label in any issue through 2024-08, so none of its c
 | --- | --- | --- |
 | (a) matches first print | 259 | 38.7% |
 | (b) equals current value | 216 | 32.2% |
-| (c) after final release | 1 | 0.1% |
+| (c) intermediate revision after an annual release | 1 | 0.1% |
 | (d) unexplained | 194 | 29.0% |
 
 | State | (a) | (b) | (c) | (d) |
@@ -223,7 +223,7 @@ Data year 2023 has no final label in any issue through 2024-08, so none of its c
 | 2022 | 14 | 23 | 0 | 23 |
 | 2023 | 9 | 3 | 0 | 18 |
 
-**Tick rule result: not met.** Class (d) is 194 of 670 (29.0%), above the limit of 13 (2%). Criterion 5 stays unticked.
+**Strict reading against the tick rule: not met.** Class (d) is 194 of 670 (29.0%), above the owner's limit of 13 (2%). Section 7.2.4 gives the refined reading the tick uses.
 
 ### 7.2.2 Class (d) cases opened in the source tables
 
@@ -250,11 +250,79 @@ The test uses only comparisons whose year-ago issue comes before the data year's
 
 193 of the 194 class (d) cases have a prior-year final release between their two prints. If that step counted as the annual revised release, class (d) would fall to **1** (VA 2020-08, a 0.01 cents/kWh difference).
 
-This reading was **not** used for the tick, for three reasons:
+Cautions that still apply to this reading:
 
-- It would change the outcome of a rule set before the result was known, so that choice belongs to the owner.
+- It changed the outcome of a rule set before the result was known.
 - It is weak as a class definition, because nearly every comparison has one of the two annual steps between its prints.
-- The control group is small (25 comparisons in data years 2012, 2013, 2020), and the step does not always change values: data year 2013 changed in only 4 of 45 comparisons.
+- The "no annual release" rate of 4.0% rests on **only 25 comparisons**, in data years 2012, 2013, 2020.
+- The step does not always change values: data year 2013 changed in only 4 of 45 comparisons.
+
+### 7.2.4 Refined reading (owner decision, 2026-11-23)
+
+**This classification was refined after the first results.** The strict reading in section 7.2.1 was run first and found 194 unexplained values. The owner then decided, on 2026-11-23, to count EIA's revised-preliminary step as an annual release. Under the refined reading, a difference is class (c) when either annual release falls after its first print and no later than its year-ago issue: the prior year's final release (the revised-preliminary step) or the data year's own final release. Nothing else changed, and no value was corrected.
+
+**Dating the step.** For data year Y, the step is EIA's release of final data for year Y-1.
+
+- EIA's EIA-861 and EIA-861M pages give a date only for recent releases: final 2025 annual data on October 7, 2026 ([EIA-861](https://www.eia.gov/electricity/data/eia861/)), and final annual 2024 data on October 27, 2025 ([EIA-861M](https://www.eia.gov/electricity/data/eia861m/)). Both were read 2026-11-24 at 03:39 UTC.
+- The [EPM Technical Notes](https://www.eia.gov/electricity/monthly/pdf/technotes.pdf) describe the step but give no dates.
+- **Every step date used here is therefore inferred.** It is the first EPM issue whose Table 5.6.A notes label year Y-1 final. That issue's table build date and server file date bracket its publication.
+- The archived EIA-861 ZIP server dates were checked as corroboration. Ten of twelve were re-uploaded in batches (2014-05-15, 2021-02-05, and 2021-11-03), so they are not release dates. The 2021 and 2022 ZIP dates each fall after the previous EPM issue and no later than the inferred step issue, so they agree with it.
+
+| Data year Y | Step: Y-1 final | Inferred from EPM issue | Note cell | Table built | Server date | EIA-published date | EIA-861 ZIP server date |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2012 | 2011 | 2012-10 | A67 | 2012-10-26 | 2012-10-31 | None published; inferred | 2014-05-15 (re-uploaded) |
+| 2013 | 2012 | 2013-12 | A67 | 2013-12-20 | 2013-12-20 | None published; inferred | 2021-02-05 (re-uploaded) |
+| 2014 | 2013 | 2015-02 | A67 | 2015-03-04 | 2015-03-04 | None published; inferred | 2021-11-03 (re-uploaded) |
+| 2015 | 2014 | 2015-11 | A67 | 2015-12-18 | 2015-12-21 | None published; inferred | 2021-11-03 (re-uploaded) |
+| 2016 | 2015 | 2016-11 | A67 | 2016-11-29 | 2016-11-29 | None published; inferred | 2021-11-03 (re-uploaded) |
+| 2017 | 2016 | 2017-11 | A67 | 2017-12-01 | 2017-12-01 | None published; inferred | 2021-11-03 (re-uploaded) |
+| 2018 | 2017 | 2018-10 | A67 | 2018-10-24 | 2018-10-24 | None published; inferred | 2021-11-03 (re-uploaded) |
+| 2019 | 2018 | 2019-10 | A67 | 2019-10-24 | 2019-10-24 | None published; inferred | 2021-11-03 (re-uploaded) |
+| 2020 | 2019 | 2020-10 | A67 | 2020-10-23 | 2020-10-26 | None published; inferred | 2021-11-03 (re-uploaded) |
+| 2021 | 2020 | 2021-11 | A67 | 2021-11-19 | 2021-11-24 | None published; inferred | 2021-11-03 (re-uploaded) |
+| 2022 | 2021 | 2022-11 | A67 | 2022-11-21 | 2022-11-22 | None published; inferred | 2022-11-22 |
+| 2023 | 2022 | 2023-10 | A67 | 2023-10-23 | 2023-10-24 | None published; inferred | 2023-10-04 |
+
+**Both readings side by side**
+
+| Class | Strict | Refined |
+| --- | --- | --- |
+| (a) matches first print | 259 | 259 |
+| (b) equals current value | 216 | 216 |
+| (c) intermediate revision after an annual release | 1 | 194 |
+| (d) unexplained | 194 | 1 |
+| **Tick rule (d at most 13)** | **Not met** | **Met** |
+
+| State | (d) strict | (d) refined |
+| --- | --- | --- |
+| VA | 18 | 1 |
+| PA | 42 | 0 |
+| OH | 47 | 0 |
+| MD | 39 | 0 |
+| NJ | 48 | 0 |
+
+| Data year | (d) strict | (d) refined |
+| --- | --- | --- |
+| 2012 | 10 | 0 |
+| 2013 | 4 | 0 |
+| 2014 | 19 | 0 |
+| 2015 | 20 | 0 |
+| 2016 | 14 | 0 |
+| 2017 | 19 | 0 |
+| 2018 | 14 | 0 |
+| 2019 | 17 | 0 |
+| 2020 | 19 | 1 |
+| 2021 | 17 | 0 |
+| 2022 | 23 | 0 |
+| 2023 | 18 | 0 |
+
+**The one remaining unexplained case**, opened in the source tables:
+
+| State | Month | First print (issue, table, cell) | Source value | Year-ago (issue, table, cell) | Source value | Frozen extract | Year-ago issue's note |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| VA | 2020-08 | 2020-10, `Table_5_06_A.xlsx`, D38 | 7.63 | 2021-10, `Table_5_06_A.xlsx`, E38 | 7.62 | 7.55 | Values are preliminary estimates based on a cutoff model sample |
+
+It reads correctly on both sides. Its first print is in issue 2020-10, the same issue that labels 2019 final, so no step falls between its two prints. The 2020 final label comes later, in 2021-11. The 0.01 cents/kWh difference stays unexplained and uncorrected.
 
 ### 7.3 Maryland outliers, reported unchanged
 
@@ -274,7 +342,7 @@ Neither first print nor the current value is always the better number. Both valu
 - They cover periods Version 1 saw in revised form, so they are **not untouched data**. Untouched data starts with Tier 1 snapshots from 2026-11-24.
 - Use m+3 only with month-end origins.
 - The Phase 3 preregistration must name the tier for training, features, and evaluation targets, and say how the two MD outliers are handled before any result is seen.
-- `DECISIONS.md` lists a failed hand or consistency check as a revisit trigger. The hand check passed. The year-ago classification did not meet the owner's tick rule, so criterion 5 stays open until the owner decides how to treat the revised-preliminary step (section 7.2.3).
+- `DECISIONS.md` lists a failed hand or consistency check as a revisit trigger. The hand check passed. The year-ago check meets the owner's tick rule only under the refined reading, which was adopted after the strict results (section 7.2.4). Phase 3 should not treat the year-ago column as a validated vintage.
 
 ## 9. Reproduce
 

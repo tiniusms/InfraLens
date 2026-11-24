@@ -67,6 +67,7 @@ YEAR_AGO_COLUMNS = [
     "year_ago_cell",
     "difference_cents_per_kwh",
     "year_ago_class",
+    "year_ago_class_refined",
 ]
 FROZEN_EXTRACT = "data/interim/eia_retail_sales_monthly_com_20260911T190524Z.parquet"
 USER_AGENT = "research-data-client/1.0"
@@ -471,6 +472,9 @@ def classify_year_ago(
         )
     pairs["year_ago_class"] = classes
     pairs["d_has_revised_preliminary_step"] = sensitivity
+    # Refined reading (owner decision, 2026-11-23, after the strict results): the
+    # revised-preliminary step counts as an annual release for class (c).
+    pairs["year_ago_class_refined"] = ["c" if step else label for label, step in zip(classes, sensitivity)]
     pairs["difference"] = (pairs["year_ago"] - pairs["first_print"]).round(2)
     return pairs.sort_values(["year_ago_month", "state"]).reset_index(drop=True)
 
@@ -478,8 +482,11 @@ def classify_year_ago(
 def year_ago_class_summary(pairs: pd.DataFrame) -> dict[str, Any]:
     labels = ["a", "b", "c", "d"]
 
-    def counts(part: pd.DataFrame) -> dict[str, int]:
-        return {label: int((part["year_ago_class"] == label).sum()) for label in labels}
+    def counts(part: pd.DataFrame, column: str = "year_ago_class") -> dict[str, int]:
+        return {label: int((part[column] == label).sum()) for label in labels}
+
+    refined = "year_ago_class_refined"
+    remaining = pairs[pairs[refined] == "d"]
 
     d_cases = pairs[pairs["year_ago_class"] == "d"].copy()
     d_cases["absolute"] = d_cases["difference"].abs()
@@ -493,6 +500,26 @@ def year_ago_class_summary(pairs: pd.DataFrame) -> dict[str, Any]:
             year: counts(pairs[pairs["year_ago_month"].str[:4] == year])
             for year in sorted(pairs["year_ago_month"].str[:4].unique())
         },
+        "refined_counts": counts(pairs, refined),
+        "refined_by_state": {state: counts(pairs[pairs["state"] == state], refined) for state in STATE_NAMES},
+        "refined_by_data_year": {
+            year: counts(pairs[pairs["year_ago_month"].str[:4] == year], refined)
+            for year in sorted(pairs["year_ago_month"].str[:4].unique())
+        },
+        "refined_d_cases": remaining[
+            [
+                "state",
+                "year_ago_month",
+                "first_print_issue",
+                "first_print_cell",
+                "first_print",
+                "year_ago_issue",
+                "year_ago_cell",
+                "year_ago",
+                "current_price",
+                "difference",
+            ]
+        ].to_dict("records"),
         "tick_limit_d": 13,
         "d_with_revised_preliminary_step": with_step,
         "d_without_any_annual_step": int(len(d_cases) - with_step),
@@ -569,6 +596,7 @@ def write_year_ago_differences(path: Path, pairs: pd.DataFrame) -> None:
                     item.year_ago_cell,
                     f"{item.difference:.2f}",
                     item.year_ago_class,
+                    item.year_ago_class_refined,
                 ]
             )
 
