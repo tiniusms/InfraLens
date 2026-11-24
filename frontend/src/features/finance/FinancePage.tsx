@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { ApiClientError } from "../../api/client";
 import type { FinanceResponse, HoldoutCase, HoldoutCasesResponse } from "../../api/types";
 import { useApi } from "../../api/useApi";
@@ -12,7 +12,10 @@ import {
   INITIAL_DRAFT,
   buildFinanceRequest,
   caseKeyId,
+  errorSummaryItems,
   findCase,
+  operatingHoursWarning,
+  type ErrorSummaryItem,
   type FinanceDraft,
   type ScenarioDraft,
 } from "./request";
@@ -30,7 +33,11 @@ type Phase =
   | { status: "ready"; response: FinanceResponse };
 
 const FIELD_CLASS =
-  "w-full min-w-0 rounded-[2px] border border-line bg-paper-raised px-3 py-2 text-[15px] leading-6 text-ink";
+  "w-full min-w-0 rounded-[2px] border bg-paper-raised px-3 py-2 text-[15px] leading-6 text-ink";
+
+function fieldClass(invalid: boolean): string {
+  return `${FIELD_CLASS} ${invalid ? "border-ink ring-1 ring-inset ring-ink" : "border-line"}`;
+}
 
 function asClientError(error: unknown): ApiClientError {
   if (error instanceof ApiClientError) {
@@ -54,10 +61,26 @@ export function FinancePage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const ticket = useRef(0);
   const draftRef = useRef(draft);
+  const focusFirstError = useRef(false);
+  const errorSummary = useRef<HTMLDivElement>(null);
+  const summaryItems = errorSummaryItems(fieldErrors);
 
   useEffect(() => {
     draftRef.current = draft;
   }, [draft]);
+
+  useEffect(() => {
+    if (!focusFirstError.current) {
+      return;
+    }
+    focusFirstError.current = false;
+    const first = errorSummaryItems(fieldErrors)[0];
+    if (!first) {
+      return;
+    }
+    const target = first.targetId ? document.getElementById(first.targetId) : null;
+    (target ?? errorSummary.current)?.focus();
+  }, [fieldErrors]);
 
   useEffect(() => {
     document.title = "Financial Scenario Studio · InfraLens";
@@ -111,6 +134,7 @@ export function FinancePage() {
 
   async function calculate() {
     const built = buildFinanceRequest(draft, availableCases);
+    focusFirstError.current = Object.keys(built.errors).length > 0;
     setFieldErrors(built.errors);
     if (!built.request) {
       return;
@@ -143,6 +167,7 @@ export function FinancePage() {
       }
       setPhase({ status: "error", error: failure });
       if (failure.field) {
+        focusFirstError.current = true;
         setFieldErrors(mapServerField(failure.field, failure.message, draft));
       }
     }
@@ -162,6 +187,7 @@ export function FinancePage() {
           void calculate();
         }}
       >
+        {summaryItems.length > 0 ? <ErrorSummary items={summaryItems} containerRef={errorSummary} /> : null}
         <div className="flex min-w-0 flex-col gap-6 lg:col-span-5">
           <fieldset className="flex flex-col gap-4">
             <legend className="text-[16px] leading-6 font-semibold">Facility assumptions</legend>
@@ -195,6 +221,7 @@ export function FinancePage() {
               hint="8760 is a non-leap 365 × 24 annualization. It is a scenario assumption."
               value={draft.operatingHours}
               error={fieldErrors.operating_hours_per_year}
+              warning={operatingHoursWarning(draft.operatingHours)}
               onChange={(value) => updateDraft({ ...draft, operatingHours: value })}
             />
           </fieldset>
@@ -270,12 +297,69 @@ function mapServerField(field: string, message: string, draft: FinanceDraft): Re
   return { [field]: message };
 }
 
+function ErrorSummary({
+  items,
+  containerRef,
+}: {
+  items: ErrorSummaryItem[];
+  containerRef: RefObject<HTMLDivElement | null>;
+}) {
+  return (
+    <div
+      ref={containerRef}
+      role="alert"
+      tabIndex={-1}
+      data-error-summary
+      className="rounded-[2px] border-2 border-ink bg-paper-raised px-4 py-4 text-ink lg:col-span-12"
+    >
+      <h2 className="text-[16px] leading-6 font-semibold">
+        {items.length === 1 ? "Check 1 input" : `Check ${items.length} inputs`}
+      </h2>
+      <ul className="mt-2 flex flex-col gap-1 text-[15px] leading-6">
+        {items.map((item) => {
+          const { targetId } = item;
+          return (
+            <li key={item.key}>
+              {targetId ? (
+                <a
+                  href={`#${targetId}`}
+                  className="underline"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    document.getElementById(targetId)?.focus();
+                  }}
+                >
+                  {item.label}: {item.message}
+                </a>
+              ) : (
+                <span>
+                  {item.label}: {item.message}
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function FieldError({ id, message }: { id: string; message: string }) {
+  return (
+    <p id={id} className="mt-1 border-l-2 border-ink pl-2 text-[15px] leading-6 font-semibold text-ink">
+      <span>Error: </span>
+      {message}
+    </p>
+  );
+}
+
 function Field({
   id,
   label,
   hint,
   value,
   error,
+  warning,
   onChange,
 }: {
   id: string;
@@ -283,10 +367,13 @@ function Field({
   hint: string;
   value: string;
   error?: string;
+  warning?: string | null;
   onChange: (value: string) => void;
 }) {
   const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
+  const warningId = `${id}-warning`;
+  const describedBy = [hintId, error ? errorId : null, warning ? warningId : null].filter(Boolean).join(" ");
   return (
     <div>
       <label htmlFor={id} className="text-[12px] leading-4 font-semibold tracking-[0.04em] text-ink-muted uppercase">
@@ -294,20 +381,22 @@ function Field({
       </label>
       <input
         id={id}
-        className={`${FIELD_CLASS} numeric mt-1`}
+        className={`${fieldClass(Boolean(error))} numeric mt-1`}
         inputMode="decimal"
         autoComplete="off"
         aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${hintId} ${errorId}` : hintId}
+        aria-describedby={describedBy}
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
       <p id={hintId} className="mt-1 text-[15px] leading-6 text-ink-muted">
         {hint}
       </p>
-      {error ? (
-        <p id={errorId} className="mt-1 text-[15px] leading-6 text-ink" role="alert">
-          {error}
+      {error ? <FieldError id={errorId} message={error} /> : null}
+      {warning ? (
+        <p id={warningId} role="status" className="mt-1 border-l-2 border-line pl-2 text-[15px] leading-6 text-ink">
+          <span className="font-semibold">Warning: </span>
+          {warning}
         </p>
       ) : null}
     </div>
@@ -356,18 +445,14 @@ function ScenarioEditor({
         </label>
         <input
           id={nameId}
-          className={`${FIELD_CLASS} mt-1`}
+          className={`${fieldClass(Boolean(errors[nameId]))} mt-1`}
           autoComplete="off"
           aria-invalid={errors[nameId] ? true : undefined}
           aria-describedby={errors[nameId] ? `${nameId}-error` : undefined}
           value={draft.name}
           onChange={(event) => onChange({ name: event.target.value })}
         />
-        {errors[nameId] ? (
-          <p id={`${nameId}-error`} className="mt-1 text-[15px] leading-6" role="alert">
-            {errors[nameId]}
-          </p>
-        ) : null}
+        {errors[nameId] ? <FieldError id={`${nameId}-error`} message={errors[nameId]} /> : null}
       </div>
       <div role="radiogroup" aria-label={`${title} price source`} className="flex flex-col gap-2">
         <SourceRadio
@@ -475,6 +560,7 @@ function CaseSelectors({
         label="State"
         value={selected?.state_id ?? ""}
         options={states}
+        errorId={error ? `${caseField}-error` : undefined}
         onChange={(stateId) => {
           const next = cases.find((item) => item.state_id === stateId);
           if (next) {
@@ -507,11 +593,7 @@ function CaseSelectors({
           }
         }}
       />
-      {error ? (
-        <p id={`${caseField}-error`} className="text-[15px] leading-6" role="alert">
-          {error}
-        </p>
-      ) : null}
+      {error ? <FieldError id={`${caseField}-error`} message={error} /> : null}
       {selected ? <CaseContext item={selected} /> : null}
     </div>
   );
@@ -522,12 +604,14 @@ function SelectField({
   label,
   value,
   options,
+  errorId,
   onChange,
 }: {
   id: string;
   label: string;
   value: string;
   options: string[];
+  errorId?: string;
   onChange: (value: string) => void;
 }) {
   return (
@@ -535,7 +619,14 @@ function SelectField({
       <label htmlFor={id} className="text-[12px] leading-4 font-semibold tracking-[0.04em] text-ink-muted uppercase">
         {label}
       </label>
-      <select id={id} className={`${FIELD_CLASS} mt-1`} value={value} onChange={(event) => onChange(event.target.value)}>
+      <select
+        id={id}
+        className={`${fieldClass(Boolean(errorId))} mt-1`}
+        aria-invalid={errorId ? true : undefined}
+        aria-describedby={errorId}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      >
         {options.map((option) => (
           <option key={option} value={option}>
             {option}
@@ -568,7 +659,7 @@ function CasesNotice({ resource }: { resource: CasesResource }) {
       return (
         <ErrorState
           title="Connection unavailable"
-          message="The InfraLens API did not respond for closed holdout cases. Typed prices can still be calculated."
+          message="Closed holdout cases did not load because the InfraLens API did not respond, so Ridge quotes are unavailable until this page is reloaded. Calculating a typed price also needs the API and works only while it responds. Your inputs stay on this page."
         />
       );
     }
@@ -616,7 +707,7 @@ function FinanceError({ error }: { error: ApiClientError }) {
     return (
       <ErrorState
         title="Connection unavailable"
-        message="The InfraLens API did not respond. No energy charge is shown."
+        message="The InfraLens API did not respond. No energy charge is shown. Your inputs are unchanged. Calculate again once the API responds."
       />
     );
   }

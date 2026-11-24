@@ -73,6 +73,50 @@ function compareDecimal(left: string, right: string): number {
   return 0;
 }
 
+const LEAP_YEAR_HOURS = "8784";
+
+/** A display-only caution. Any positive hour count stays a valid scenario assumption and is still sent. */
+export function operatingHoursWarning(hours: string): string | null {
+  const text = hours.trim();
+  if (!isDecimalString(text) || text.startsWith("-") || compareDecimal(text, LEAP_YEAR_HOURS) <= 0) {
+    return null;
+  }
+  return "This is above 8,784, the number of hours in a leap year. The value is still accepted and sent as a scenario assumption.";
+}
+
+const ERROR_FIELDS: ReadonlyArray<{ key: string; label: string; targetId: string }> = [
+  { key: "it_capacity_mw", label: "IT capacity", targetId: "it_capacity_mw" },
+  { key: "pue", label: "Power usage effectiveness", targetId: "pue" },
+  { key: "utilization", label: "Utilization", targetId: "utilization" },
+  { key: "operating_hours_per_year", label: "Operating hours", targetId: "operating_hours_per_year" },
+  { key: "baseline_name", label: "Baseline scenario name", targetId: "baseline_name" },
+  { key: "baseline_price", label: "Baseline energy price", targetId: "baseline_price" },
+  { key: "baseline_case", label: "Baseline holdout case", targetId: "baseline_case-state" },
+  { key: "comparison_name", label: "Comparison scenario name", targetId: "comparison_name" },
+  { key: "comparison_price", label: "Comparison energy price", targetId: "comparison_price" },
+  { key: "comparison_case", label: "Comparison holdout case", targetId: "comparison_case-state" },
+];
+
+export type ErrorSummaryItem = {
+  key: string;
+  label: string;
+  message: string;
+  targetId: string | null;
+};
+
+/** Errors in form order. A server error without a matching field has no link target. */
+export function errorSummaryItems(errors: Record<string, string>): ErrorSummaryItem[] {
+  const known = ERROR_FIELDS.flatMap((field) => {
+    const message = errors[field.key];
+    return message ? [{ key: field.key, label: field.label, message, targetId: field.targetId }] : [];
+  });
+  const knownKeys = new Set(ERROR_FIELDS.map((field) => field.key));
+  const other = Object.entries(errors)
+    .filter(([key]) => !knownKeys.has(key))
+    .map(([key, message]) => ({ key, label: "Calculator", message, targetId: null }));
+  return [...known, ...other];
+}
+
 function scenarioInput(
   draft: ScenarioDraft,
   cases: readonly HoldoutCase[],
