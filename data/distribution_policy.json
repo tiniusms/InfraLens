@@ -12,6 +12,12 @@
     "final_holdout_summary_local": "local_only",
     "final_eia_holdout_oneshot_committed": "committed"
   },
+  "additional_files": {
+    "data/eia_vintage_ledger.json": "committed"
+  },
+  "local_only_directories": [
+    "data/raw/eia/vintages/"
+  ],
   "cache_paths": [
     "data/interim/eia_retail_sales_monthly_com_20260911T190524Z.parquet",
     "data/processed/final_holdout/final_holdout_cases.parquet",

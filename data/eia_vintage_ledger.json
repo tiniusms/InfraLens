@@ -1,0 +1,79 @@
+{
+  "ledger_version": 1,
+  "description": "Forward archive of EIA retail-sales API snapshots (Phase 2 criterion 5). Metadata only: snapshot files are local-only and are not distributed in git. A gap is recorded rather than filled; no vintage is synthesized or back-filled.",
+  "decision": "DECISIONS.md, 2026-11-23, EIA vintage policy and forward archive",
+  "source": {
+    "publisher": "U.S. Energy Information Administration",
+    "route": "/v2/electricity/retail-sales/data/",
+    "frequency": "monthly",
+    "sectorid": "COM",
+    "stateid": [
+      "VA",
+      "PA",
+      "OH",
+      "MD",
+      "NJ"
+    ],
+    "start": "2001-01",
+    "data": [
+      "price",
+      "sales",
+      "revenue"
+    ]
+  },
+  "payload_hash": "SHA-256 of the data rows sorted by period, stateid, and sectorid, as compact JSON with sorted keys (scripts/eia_snapshot.py, payload_sha256).",
+  "snapshots": [
+    {
+      "id": "20261124T023746Z",
+      "path": "data/raw/eia/vintages/20261124T023746Z",
+      "retrieved_at": "2026-11-24T02:37:46.823054Z",
+      "retrieval_completed_at": "2026-11-24T02:37:47.520652Z",
+      "files": [
+        {
+          "file": "data_page_0001.json",
+          "sha256": "47ecc96e98eb5346cef86aa5db198646aee48e5158505fa816faaaffb4239623",
+          "size_bytes": 432572
+        },
+        {
+          "file": "route_metadata.json",
+          "sha256": "c71a0ef43717cd3a06aa640566f68599a476002fb949470ef8e6d425503548bb",
+          "size_bytes": 1305
+        },
+        {
+          "file": "snapshot_metadata.json",
+          "sha256": "59b7fd9960cc5192bb27f1fd68c8b4e66abf72122bc69bf3682abaea575819f8",
+          "size_bytes": 4840
+        }
+      ],
+      "payload_sha256": "274c4832af8bb47ba574fc025cb8df32c661057a07d41ec835c2f0467596c279",
+      "row_count": 1540,
+      "earliest_period": "2001-01",
+      "latest_period": "2026-08",
+      "follows_epm_release": {
+        "release_date": "2026-10-23",
+        "data_month": "2026-08"
+      },
+      "bulk_manifest_elec_last_updated": "2026-10-22T18:26:13-04:00",
+      "tier": "tier_1_observed_real_time",
+      "capture": "after_release"
+    }
+  ],
+  "gaps": [
+    {
+      "epm_release_date": "2026-09-24",
+      "data_month": "2026-07",
+      "gap_type": "full_panel_not_saved",
+      "later_snapshot_id": null,
+      "release_date_evidence": "Server file date of the EPM September 2026 ZIP (proxy for the release date).",
+      "reason": "No API snapshot was taken while this release was being served, and the API keeps no vintages. The full panel cannot be recovered."
+    },
+    {
+      "epm_release_date": "2026-10-23",
+      "data_month": "2026-08",
+      "gap_type": "not_captured_at_release",
+      "later_snapshot_id": "20261124T023746Z",
+      "release_date_evidence": "EPM page: Data for August 2026, Release Date October 23, 2026.",
+      "reason": "No snapshot was taken at release. Snapshot 20261124T023746Z was taken about one month later, before the next update, with the bulk ELEC timestamp unchanged since 2026-10-22. The panel as served on the release date was not directly observed, so the snapshot counts only from its retrieved_at."
+    }
+  ]
+}
