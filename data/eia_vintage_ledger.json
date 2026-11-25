@@ -56,6 +56,40 @@
       "bulk_manifest_elec_last_updated": "2026-10-22T18:26:13-04:00",
       "tier": "tier_1_observed_real_time",
       "capture": "after_release"
+    },
+    {
+      "id": "20261125T234851Z",
+      "path": "data/raw/eia/vintages/20261125T234851Z",
+      "retrieved_at": "2026-11-25T23:48:51.836052Z",
+      "retrieval_completed_at": "2026-11-25T23:49:41.176357Z",
+      "files": [
+        {
+          "file": "data_page_0001.json",
+          "sha256": "fc420ec8a50ac4c1422d012a8a5008de191f404c1a507691c0d2feae9f9dfd64",
+          "size_bytes": 433978
+        },
+        {
+          "file": "route_metadata.json",
+          "sha256": "3d4957ab4c2ce0bc0f49e497ef8d8eea73005ab04fda08a7907911f875e29358",
+          "size_bytes": 1305
+        },
+        {
+          "file": "snapshot_metadata.json",
+          "sha256": "2a272ff932a4eb02e526570c0ee25750958ac9b065b131a900501bbd3af7505f",
+          "size_bytes": 4902
+        }
+      ],
+      "payload_sha256": "4010219bfa75da3e8dd8a7f4ec456e7f446b8f998838f217a947d8329afdc639",
+      "row_count": 1545,
+      "earliest_period": "2001-01",
+      "latest_period": "2026-09",
+      "follows_epm_release": {
+        "release_date": "2026-11-24",
+        "data_month": "2026-09"
+      },
+      "bulk_manifest_elec_last_updated": "2026-11-20T15:08:11-05:00",
+      "tier": "tier_1_observed_real_time",
+      "capture": "after_release"
     }
   ],
   "gaps": [
