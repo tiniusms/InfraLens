@@ -18,6 +18,19 @@
   "local_only_directories": [
     "data/raw/eia/vintages/"
   ],
+  "epm_first_print": {
+    "decision": "DECISIONS.md, 2026-11-23, EIA vintage policy and forward archive",
+    "description": "EPM back-issue ZIPs and parsed first-print values are local-only. Only source metadata, the dates-only timing table, and year-ago differences (no price levels) are committed.",
+    "committed_files": {
+      "data/epm_backissue_sources.json": "committed",
+      "data/epm_publication_timing.csv": "committed",
+      "data/epm_year_ago_differences.csv": "committed"
+    },
+    "local_only_directories": [
+      "data/raw/eia/epm_backissues/",
+      "data/processed/eia_first_print/"
+    ]
+  },
   "cache_paths": [
     "data/interim/eia_retail_sales_monthly_com_20260911T190524Z.parquet",
     "data/processed/final_holdout/final_holdout_cases.parquet",
