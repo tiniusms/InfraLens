@@ -59,7 +59,9 @@ The regularized-linear criterion was resolved in development on 2026-09-29, when
 The 75–85% interval-coverage range is a diagnostic calibration check. It is not the primary model pass/fail gate and it is not a reason to retune.
 
 ## 7. Engineering stack
-Python -> EIA/PJM/FERC/EPA -> Parquet -> DuckDB -> pandas/polars as needed -> scikit-learn + XGBoost/HistGradientBoosting -> MLflow -> SHAP -> Streamlit -> Docker -> GitHub.
+Python -> EIA/PJM/FERC/EPA -> Parquet -> pandas/polars as needed -> scikit-learn + XGBoost/HistGradientBoosting -> MLflow -> SHAP -> Streamlit -> Docker -> GitHub.
+
+DuckDB was dropped from the stack in Phase 2 (TD-01, PR #27): it was declared but never used, and vintage archival does not need it.
 
 Prefer open-source and local-first tooling. Avoid unnecessary vendor lock-in.
 

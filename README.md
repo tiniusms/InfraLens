@@ -235,7 +235,7 @@ Development checks already produced the frozen comparison: `python -m infralens.
 
 ## Implemented stack
 
-Installable package in `src/infralens`. The locked environment uses Python 3.13; `pyproject.toml` still declares 3.11+ (TD-30). Core dependencies are pandas, NumPy, PyArrow, DuckDB, httpx, scikit-learn, Matplotlib, and python-dotenv. The `dev` extra adds pytest and Jupyter. The `demo` extra adds Streamlit and Altair. The HTTP client is httpx.
+Installable package in `src/infralens`. The locked environment uses Python 3.13; `pyproject.toml` still declares 3.11+ (TD-30). Core dependencies are pandas, NumPy, PyArrow, httpx, scikit-learn, and python-dotenv. The `dev` extra adds pytest and Jupyter. The `demo` extra adds Streamlit and Altair. The HTTP client is httpx.
 
 The repository includes EIA commercial retail-sales ingest, publication-lag-constrained development backtests (seasonal naive, Ridge, and a histogram-gradient-boosting comparison that lost on development MAE), state-specific absolute-residual intervals, origin-specific Ridge coefficient explanations, a deterministic annual electricity-cost identity, PJM 2025/2026 table screening parsed from workbook ZIP/XML, and the Streamlit historical-evaluation page.
 
