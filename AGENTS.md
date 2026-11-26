@@ -26,7 +26,7 @@ Read `PROJECT_CONTEXT.md` and `DECISIONS.md` before proposing or implementing ma
 - Type hints for reusable functions.
 - Small, testable modules instead of one large notebook.
 - Raw data is immutable; transformations write new artifacts.
-- Store analytical datasets as Parquet and query through DuckDB where practical.
+- Store analytical datasets as Parquet and read them with pandas.
 - Keep secrets in environment variables; commit `.env.example`, never credentials.
 - Add tests for financial calculations, date/vintage logic, and core transformations.
 - Use clear docstrings where domain meaning is not obvious.

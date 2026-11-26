@@ -4,7 +4,7 @@
 - `interim/` — cleaned or joined tables still in progress.
 - `processed/` — analysis-ready Parquet (and similar) artifacts. Slice 1 PJM output belongs under `processed/pjm/` and stays gitignored.
 
-Query processed tables through DuckDB where practical. Track publication / availability dates so features never use information that would not have been available at the prediction date.
+Read and write processed tables as Parquet with pandas (PyArrow engine). Track publication / availability dates so features never use information that would not have been available at the prediction date.
 
 ## Distribution policy
 

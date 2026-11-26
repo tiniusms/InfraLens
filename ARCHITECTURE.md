@@ -154,7 +154,7 @@ A typed price does not carry that warning. The calculator does not add demand ch
 
 `pyproject.toml` requires Python 3.11+. Modules import pandas, NumPy, httpx, scikit-learn, and python-dotenv. NumPy is imported by the evaluation modules. httpx and python-dotenv are the EIA client. scikit-learn supplies Ridge and `HistGradientBoostingRegressor`. Parquet I/O calls pandas `read_parquet` and `to_parquet` without an `engine` argument. PyArrow is the declared dependency for that path. No module imports PyArrow by name.
 
-DuckDB `>=1.1` and Matplotlib `>=3.9` are declared core dependencies. No module under `src/infralens/` imports either of them. `data/README.md` says processed tables may be queried through DuckDB where practical. That query path is not implemented. Demo charts are Altair, from the `demo` extra, together with Streamlit. The `dev` extra is pytest and Jupyter.
+DuckDB and Matplotlib are not dependencies. They were declared but never imported, and were removed under Phase 2 criterion 6 (TD-01). Demo charts are Altair, from the `demo` extra, together with Streamlit. The `dev` extra is pytest and Jupyter.
 
 Parsing the PJM workbooks uses the Python standard library (`zipfile` and `xml.etree`). openpyxl is not a dependency and is not imported.
 
