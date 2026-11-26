@@ -17,7 +17,7 @@ Capstone due: 25 October 2026. The academic capstone is complete. Fallback proje
 
 InfraLens continues as an independently developed AI infrastructure-analysis product. Local development is the supported workflow, and public deployment remains retired. Claude Code is the primary implementation, testing, and Git development agent; Cursor is no longer required. GitHub `main` is the authoritative committed baseline.
 
-The Version 2 charter is [`docs/version_2_charter.md`](docs/version_2_charter.md), ratified in `DECISIONS.md` on 2026-11-05. It balances forecasting, PJM screening, financial decision support, and product engineering for VA, PA, OH, MD, and NJ. Phase 1 (engineering foundation) is complete (2026-11-20, see `DECISIONS.md`), Phase 2 (data reliability) is authorized (2026-11-20, criteria in `TASKS.md`), and Phases 3–5 need owner-approved scope before work starts. A Version 2 forecasting improvement cannot be claimed without a separately approved, preregistered evaluation. Discounted multi-year finance, new geography such as Texas/ERCOT, public deployment, and paid infrastructure each need their own decision. Version 1 results remain unchanged.
+The Version 2 charter is [`docs/version_2_charter.md`](docs/version_2_charter.md), ratified in `DECISIONS.md` on 2026-11-05. It balances forecasting, PJM screening, financial decision support, and product engineering for VA, PA, OH, MD, and NJ. Phase 1 (engineering foundation) is complete (2026-11-20, see `DECISIONS.md`), Phase 2 (data reliability) is complete (2026-11-25, see `DECISIONS.md`), and Phases 3–5 need owner-approved scope before work starts. Phase 3 also needs its own preregistration decision, which must name the tier it uses under the three-tier EIA vintage policy (`DECISIONS.md`, 2026-11-23). A Version 2 forecasting improvement cannot be claimed without a separately approved, preregistered evaluation. Discounted multi-year finance, new geography such as Texas/ERCOT, public deployment, and paid infrastructure each need their own decision. Version 1 results remain unchanged.
 
 ## Current deployment status
 
@@ -123,7 +123,7 @@ npm run build
 cd ..
 ```
 
-Expected results: `npm test` reports 41 passed, and lint and build exit with status 0. The build prints the existing chunk-size warning (about 756 kB), and `npm ci` may print a deprecation notice for `eslint@9.39.5` and `npm warn install-scripts` notices. None of these is a failure.
+Expected results: `npm test` reports 53 passed, and lint and build exit with status 0. The build prints the existing chunk-size warning (about 756 kB), and `npm ci` may print a deprecation notice for `eslint@9.39.5` and `npm warn install-scripts` notices. None of these is a failure.
 
 ### 6. Start the local app
 
