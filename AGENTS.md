@@ -22,7 +22,7 @@ Read `PROJECT_CONTEXT.md` and `DECISIONS.md` before proposing or implementing ma
 - Avoid feature creep. New features must improve the intended analyst decision and fit scope approved in `DECISIONS.md`.
 
 ## Code expectations
-- Python 3.13 for the locked environment (`requirements-lock.txt`). `pyproject.toml` still declares 3.11+ (TD-30).
+- Python 3.13+ (`pyproject.toml` declares `requires-python >=3.13`), locked in `requirements-lock.txt`.
 - Type hints for reusable functions.
 - Small, testable modules instead of one large notebook.
 - Raw data is immutable; transformations write new artifacts.

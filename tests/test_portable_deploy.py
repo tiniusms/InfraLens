@@ -149,7 +149,7 @@ def test_requirements_pin_the_api_runtime_without_scientific_extras() -> None:
     assert pins["starlette"] == "1.8.0"
     assert pins["pydantic"] == "2.14.1"
     assert pins["pandas"] == "3.0.5"
-    assert pins["opentelemetry-api"] == "1.45.1"
+    assert pins["opentelemetry-api"] == "1.45.2"
     assert "opentelemetry-sdk" not in pins
     assert "opentelemetry-exporter-otlp-proto-http" not in pins
     assert "scikit-learn" not in pins

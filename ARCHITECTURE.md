@@ -152,7 +152,7 @@ A typed price does not carry that warning. The calculator does not add demand ch
 
 ## 6. Implemented dependencies, non-goals, and exclusions
 
-`pyproject.toml` requires Python 3.11+. Modules import pandas, NumPy, httpx, scikit-learn, and python-dotenv. NumPy is imported by the evaluation modules. httpx and python-dotenv are the EIA client. scikit-learn supplies Ridge and `HistGradientBoostingRegressor`. Parquet I/O calls pandas `read_parquet` and `to_parquet` without an `engine` argument. PyArrow is the declared dependency for that path. No module imports PyArrow by name.
+`pyproject.toml` requires Python 3.13+. Modules import pandas, NumPy, httpx, scikit-learn, and python-dotenv. NumPy is imported by the evaluation modules. httpx and python-dotenv are the EIA client. scikit-learn supplies Ridge and `HistGradientBoostingRegressor`. Parquet I/O calls pandas `read_parquet` and `to_parquet` without an `engine` argument. PyArrow is the declared dependency for that path. No module imports PyArrow by name.
 
 DuckDB and Matplotlib are not dependencies. They were declared but never imported, and were removed under Phase 2 criterion 6 (TD-01). Demo charts are Altair, from the `demo` extra, together with Streamlit. The `dev` extra is pytest and Jupyter.
 
