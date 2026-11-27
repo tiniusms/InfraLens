@@ -13,7 +13,7 @@ fastapi==0.143.3
 h11==0.16.0
 idna==3.20
 numpy==2.5.3
-opentelemetry-api==1.45.1
+opentelemetry-api==1.45.2
 pandas==3.0.5
 pydantic==2.14.1
 pydantic_core==2.50.1

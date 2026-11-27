@@ -7,7 +7,7 @@ name = "infralens"
 version = "0.1.0"
 description = "Explainable power-cost forecasting and capital-risk screening for data-center locations."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 authors = [{ name = "InfraLens" }]
 dependencies = [
     "pandas>=2.2",
